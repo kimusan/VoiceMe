@@ -1,0 +1,25 @@
+# Local planning / agent state
+ROADMAP.md
+.hermes/
+
+# Android / Gradle build outputs
+.gradle/
+build/
+*/build/
+local.properties
+*.iml
+.idea/
+.cxx/
+.externalNativeBuild/
+
+# Signing and release secrets
+*.jks
+*.keystore
+keystore.properties
+release.properties
+
+# Generated artifacts
+*.apk
+*.aab
+*.apks
+*.idsig
