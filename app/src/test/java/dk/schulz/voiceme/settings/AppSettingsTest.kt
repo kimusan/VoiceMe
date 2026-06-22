@@ -36,6 +36,8 @@ class AppSettingsTest {
             offlineOnly = true,
             transcriptHistoryEnabled = false,
             hideInSensitiveFields = true,
+            selectedModelId = AppSettings.default().selectedModelId,
+            downloadedModelIds = setOf("sherpa-onnx-streaming-zipformer-en-int8"),
         )
 
         val restored = AppSettingsCodec.decode(AppSettingsCodec.encode(original))

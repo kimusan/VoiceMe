@@ -34,6 +34,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import dk.schulz.voiceme.R
+import dk.schulz.voiceme.dictation.DictationBlockReason
+import dk.schulz.voiceme.dictation.DictationSessionState
+import dk.schulz.voiceme.models.ModelCatalogState
 import dk.schulz.voiceme.onboarding.OnboardingFlow
 import dk.schulz.voiceme.onboarding.OnboardingStep
 import dk.schulz.voiceme.settings.AppSettings
@@ -43,14 +46,30 @@ import dk.schulz.voiceme.ui.theme.VoiceMeTheme
 @Composable
 fun VoiceMeApp(
     appSettings: AppSettings = AppSettings.default(),
+    dictationState: DictationSessionState = DictationSessionState.idle(hasMicrophonePermission = false),
+    modelCatalogState: ModelCatalogState = ModelCatalogState.default(),
     onSettingsChange: (AppSettings) -> Unit = {},
     onOpenAccessibilitySettings: () -> Unit = {},
+    onRequestMicrophonePermission: () -> Unit = {},
+    onStartRecordingShell: () -> Unit = {},
+    onStopRecordingShell: () -> Unit = {},
+    onSelectModel: (String) -> Unit = {},
+    onDownloadModel: (String) -> Unit = {},
+    onDeleteModel: (String) -> Unit = {},
 ) {
     VoiceMeTheme {
         VoiceMeHomeScreen(
             appSettings = appSettings,
+            dictationState = dictationState,
+            modelCatalogState = modelCatalogState,
             onSettingsChange = onSettingsChange,
             onOpenAccessibilitySettings = onOpenAccessibilitySettings,
+            onRequestMicrophonePermission = onRequestMicrophonePermission,
+            onStartRecordingShell = onStartRecordingShell,
+            onStopRecordingShell = onStopRecordingShell,
+            onSelectModel = onSelectModel,
+            onDownloadModel = onDownloadModel,
+            onDeleteModel = onDeleteModel,
         )
     }
 }
@@ -59,8 +78,16 @@ fun VoiceMeApp(
 @Composable
 fun VoiceMeHomeScreen(
     appSettings: AppSettings,
+    dictationState: DictationSessionState,
+    modelCatalogState: ModelCatalogState,
     onSettingsChange: (AppSettings) -> Unit,
     onOpenAccessibilitySettings: () -> Unit,
+    onRequestMicrophonePermission: () -> Unit,
+    onStartRecordingShell: () -> Unit,
+    onStopRecordingShell: () -> Unit,
+    onSelectModel: (String) -> Unit,
+    onDownloadModel: (String) -> Unit,
+    onDeleteModel: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val onboardingFlow = remember { OnboardingFlow.default() }
@@ -107,16 +134,28 @@ fun VoiceMeHomeScreen(
 
                 1 -> VoiceMeStatusScreen(
                     appSettings = appSettings,
+                    dictationState = dictationState,
+                    modelCatalogState = modelCatalogState,
                     onReviewSetup = {
                         currentStep = 0
                         selectedSection = 0
                     },
                     onOpenAccessibilitySettings = onOpenAccessibilitySettings,
+                    onRequestMicrophonePermission = onRequestMicrophonePermission,
+                    onStartRecordingShell = onStartRecordingShell,
+                    onStopRecordingShell = onStopRecordingShell,
                 )
 
-                else -> VoiceMeSettingsPreview(
+                2 -> VoiceMeSettingsPreview(
                     appSettings = appSettings,
                     onSettingsChange = onSettingsChange,
+                )
+
+                else -> VoiceMeModelsScreen(
+                    modelCatalogState = modelCatalogState,
+                    onSelectModel = onSelectModel,
+                    onDownloadModel = onDownloadModel,
+                    onDeleteModel = onDeleteModel,
                 )
             }
         }
@@ -133,7 +172,7 @@ private fun SectionChips(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        listOf("Setup", "Status", "Settings").forEachIndexed { index, label ->
+        listOf("Setup", "Status", "Settings", "Models").forEachIndexed { index, label ->
             FilterChip(
                 selected = selectedSection == index,
                 onClick = { onSelectedSectionChange(index) },
@@ -212,8 +251,13 @@ private fun VoiceMeOnboardingScreen(
 @Composable
 private fun VoiceMeStatusScreen(
     appSettings: AppSettings,
+    dictationState: DictationSessionState,
+    modelCatalogState: ModelCatalogState,
     onReviewSetup: () -> Unit,
     onOpenAccessibilitySettings: () -> Unit,
+    onRequestMicrophonePermission: () -> Unit,
+    onStartRecordingShell: () -> Unit,
+    onStopRecordingShell: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -249,6 +293,43 @@ private fun VoiceMeStatusScreen(
                 DictationInteraction.HoldToTalk -> "Hold-to-talk: safest default for accidental dictation."
                 DictationInteraction.TapToToggle -> "Tap-to-toggle: easier for longer dictation once recording exists."
             },
+        )
+        StatusCard(
+            title = "Microphone shell",
+            body = microphoneStatusText(dictationState),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Button(
+                onClick = if (dictationState.hasMicrophonePermission) {
+                    onStartRecordingShell
+                } else {
+                    onRequestMicrophonePermission
+                },
+                enabled = !dictationState.isRecording,
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(if (dictationState.hasMicrophonePermission) "Start mic shell" else "Allow microphone")
+            }
+            OutlinedButton(
+                onClick = onStopRecordingShell,
+                enabled = dictationState.isRecording,
+                modifier = Modifier.weight(1f),
+            ) {
+                Text("Stop")
+            }
+        }
+        if (dictationState.latestFinalTranscript.isNotBlank()) {
+            StatusCard(
+                title = "ASR stub output",
+                body = "Latest final segment: ${dictationState.latestFinalTranscript}. The Accessibility overlay uses this same stub text for insertion testing.",
+            )
+        }
+        StatusCard(
+            title = "Selected local model",
+            body = "${modelCatalogState.selectedModel.name}: ${modelCatalogState.selectedInstallState}. Open Models to prepare or delete the local model marker.",
         )
         Button(
             onClick = onOpenAccessibilitySettings,
@@ -308,6 +389,78 @@ private fun VoiceMeSettingsPreview(
             title = "Transcript history locked off",
             body = "Transcript history remains disabled in this build. A future release may expose it only as an explicit opt-in setting.",
         )
+    }
+}
+
+@Composable
+private fun VoiceMeModelsScreen(
+    modelCatalogState: ModelCatalogState,
+    onSelectModel: (String) -> Unit,
+    onDownloadModel: (String) -> Unit,
+    onDeleteModel: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text(
+            text = "Local models",
+            style = MaterialTheme.typography.headlineMedium,
+        )
+        Text(
+            text = "This is the model download/delete shell. It records explicit local install choices now; real binary download, checksum verification, and ASR loading are next.",
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        modelCatalogState.catalog.models.forEach { model ->
+            val selected = model.id == modelCatalogState.selectedModel.id
+            val downloaded = modelCatalogState.downloadedModelIds.contains(model.id)
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Text(
+                        text = model.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = model.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        text = "${model.engine} · ${model.language} · ~${model.sizeMegabytes} MB · ${model.license}",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(
+                        text = "Status: ${if (downloaded) "downloaded marker present" else "not downloaded"}${if (selected) " · selected" else ""}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        OutlinedButton(
+                            onClick = { onSelectModel(model.id) },
+                            enabled = !selected,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(if (selected) "Selected" else "Select")
+                        }
+                        Button(
+                            onClick = {
+                                if (downloaded) onDeleteModel(model.id) else onDownloadModel(model.id)
+                            },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(if (downloaded) "Delete" else "Prepare")
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -373,14 +526,30 @@ private fun SettingSwitchCard(
 
 private fun yesNo(value: Boolean): String = if (value) "yes" else "no"
 
+private fun microphoneStatusText(state: DictationSessionState): String = when {
+    state.isRecording -> "Recording shell active with a foreground microphone notification. Audio capture is local and ASR is still stubbed."
+    !state.hasMicrophonePermission && state.blockReason == DictationBlockReason.MicrophonePermissionMissing ->
+        "Microphone permission is required before the foreground recording shell can start."
+    !state.hasMicrophonePermission -> "Microphone permission has not been granted yet."
+    else -> "Microphone permission granted. Recording shell is idle."
+}
+
 @Preview(showBackground = true)
 @Composable
 private fun VoiceMeHomeScreenPreview() {
     VoiceMeTheme(dynamicColor = false) {
         VoiceMeHomeScreen(
             appSettings = AppSettings.default(),
+            dictationState = DictationSessionState.idle(hasMicrophonePermission = false),
+            modelCatalogState = ModelCatalogState.default(),
             onSettingsChange = {},
             onOpenAccessibilitySettings = {},
+            onRequestMicrophonePermission = {},
+            onStartRecordingShell = {},
+            onStopRecordingShell = {},
+            onSelectModel = {},
+            onDownloadModel = {},
+            onDeleteModel = {},
         )
     }
 }

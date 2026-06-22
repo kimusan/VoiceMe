@@ -12,23 +12,23 @@ VoiceMe is designed to be privacy-first. This document describes the intended pr
 
 ## Audio
 
-VoiceMe uses the microphone only while the user actively starts dictation. Audio is streamed to the local ASR engine running on the device. The app should not persist raw audio unless a future feature explicitly asks for user consent and this policy is updated.
+VoiceMe uses the microphone only while the user actively starts dictation. The current prototype has a foreground microphone shell that opens `AudioRecord` locally and shows a visible notification, but no ASR engine is connected yet. Future builds will stream audio to the local ASR engine running on the device. The app should not persist raw audio unless a future feature explicitly asks for user consent and this policy is updated.
 
 ## Transcripts
 
-Dictated text is inserted into the user's chosen input field. VoiceMe should not store transcript history by default. If transcript history is added later, it must be local-only, opt-in, and deletable from settings.
+Dictated text is inserted into the user's chosen input field. The current Accessibility overlay inserts only a fixed test phrase (`VoiceMe dictation test`) when the user taps the preview overlay; this is an insertion prototype, not real speech transcription. To append the test phrase, the service reads the focused node's existing text at the moment of the explicit tap. VoiceMe should not store transcript history by default. If transcript history is added later, it must be local-only, opt-in, and deletable from settings.
 
 ## Accessibility service
 
-VoiceMe includes an AccessibilityService registration so users can enable the keyboard-adjacent dictation mode from Android settings. This capability is needed to detect focused editable fields and place a mic control next to the normal keyboard. In the current preview build, the service looks only at accessibility metadata needed to decide whether a focused node is editable or password/sensitive; it does not read field text. If an eligible editable field is focused, it shows a draggable microphone preview overlay. The preview overlay does not record audio, transcribe speech, or insert dictated text.
+VoiceMe includes an AccessibilityService registration so users can enable the keyboard-adjacent dictation mode from Android settings. This capability is needed to detect focused editable fields and place a mic control next to the normal keyboard. The service looks at accessibility metadata needed to decide whether a focused node is editable or password/sensitive. It reads the focused field text only after the user explicitly taps the overlay insertion prototype so it can append the fixed ASR-stub phrase instead of overwriting the field. The preview overlay does not run real speech transcription yet.
 
 ## Local preferences
 
-VoiceMe stores a small set of local preferences, such as onboarding completion and preview settings for dictation interaction, offline-only mode, and sensitive-field behavior. These preferences stay in the app's private storage and Android backup is disabled for the app.
+VoiceMe stores a small set of local preferences, such as onboarding completion and preview settings for dictation interaction, offline-only mode, sensitive-field behavior, selected model ID, and model install markers. These preferences stay in the app's private storage and Android backup is disabled for the app.
 
 ## Model files
 
-ASR models may be downloaded after the user chooses a model. Downloads must use HTTPS and checksum verification. Users must be able to delete downloaded models. Model licenses and approximate sizes must be shown before download.
+ASR models may be downloaded after the user chooses a model. The current UI provides a model catalog and local prepare/delete marker shell; it does not download real model binaries yet. Future downloads must use HTTPS and checksum verification. Users must be able to delete downloaded models. Model licenses and approximate sizes must be shown before download.
 
 ## Network
 

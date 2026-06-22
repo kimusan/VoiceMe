@@ -18,6 +18,8 @@ class AppSettingsStore(
             OfflineOnly to preferences.getString(OfflineOnly, null).orEmpty(),
             TranscriptHistoryEnabled to preferences.getString(TranscriptHistoryEnabled, null).orEmpty(),
             HideInSensitiveFields to preferences.getString(HideInSensitiveFields, null).orEmpty(),
+            SelectedModelId to preferences.getString(SelectedModelId, null).orEmpty(),
+            DownloadedModelIds to preferences.getString(DownloadedModelIds, null).orEmpty(),
         ).filterValues { it.isNotEmpty() },
     )
 
@@ -36,5 +38,7 @@ class AppSettingsStore(
         private const val OfflineOnly = "offlineOnly"
         private const val TranscriptHistoryEnabled = "transcriptHistoryEnabled"
         private const val HideInSensitiveFields = "hideInSensitiveFields"
+        private const val SelectedModelId = "selectedModelId"
+        private const val DownloadedModelIds = "downloadedModelIds"
     }
 }

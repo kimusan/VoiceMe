@@ -13,3 +13,6 @@ The format follows Keep a Changelog principles, and versions should follow seman
 - Interactive Material 3 setup preview with onboarding, status, and settings sections for the privacy-first dictation flow.
 - Local settings persistence for onboarding completion, dictation interaction preference, offline-only mode, and sensitive-field behavior.
 - Accessibility service registration, focused editable-field detection, and a draggable safe microphone preview overlay, plus an in-app shortcut to Android Accessibility settings.
+- Foreground microphone recording shell with runtime microphone permission request, visible service notification, and local `AudioRecord` capture groundwork.
+- Model catalog UI with persisted selected-model and prepare/delete marker state for local ASR model planning.
+- ASR-stub text insertion prototype that appends a fixed test phrase through accessibility `ACTION_SET_TEXT` when the user taps the overlay.

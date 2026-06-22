@@ -2,6 +2,7 @@ package dk.schulz.voiceme.accessibility
 
 import android.accessibilityservice.AccessibilityService
 import android.graphics.PixelFormat
+import android.os.Bundle
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
@@ -37,7 +38,10 @@ class VoiceMeAccessibilityService : AccessibilityService() {
         }
 
         try {
-            val snapshot = node.toFocusedFieldSnapshot(event)
+            val snapshot = node.toFocusedFieldSnapshot(
+                eventPackageName = event.packageName?.toString(),
+                eventClassName = event.className?.toString(),
+            )
             val detection = FocusedFieldDetector.detect(
                 snapshot = snapshot,
                 settings = settingsStore.load(),
@@ -79,11 +83,7 @@ class VoiceMeAccessibilityService : AccessibilityService() {
             elevation = 12f
             contentDescription = "VoiceMe dictation preview button"
             setOnClickListener {
-                Toast.makeText(
-                    this@VoiceMeAccessibilityService,
-                    "VoiceMe dictation engine is not connected yet.",
-                    Toast.LENGTH_SHORT,
-                ).show()
+                insertStubTranscriptIntoFocusedField()
             }
             setOnTouchListener(OverlayDragTouchListener(windowManager))
         }
@@ -97,6 +97,50 @@ class VoiceMeAccessibilityService : AccessibilityService() {
             runCatching { windowManager.removeView(view) }
         }
         overlayView = null
+    }
+
+    private fun insertStubTranscriptIntoFocusedField() {
+        val focusedNode = rootInActiveWindow?.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
+        if (focusedNode == null) {
+            showToast("No editable text field is focused.")
+            return
+        }
+
+        try {
+            val snapshot = focusedNode.toFocusedFieldSnapshot(
+                eventPackageName = focusedNode.packageName?.toString(),
+                eventClassName = focusedNode.className?.toString(),
+            )
+            val draft = TextInsertionDraft.from(
+                TextInsertionRequest(
+                    focusedField = snapshot,
+                    existingText = focusedNode.text?.toString().orEmpty(),
+                    transcript = "VoiceMe dictation test",
+                ),
+            )
+            if (!draft.canInsert) {
+                showToast("VoiceMe did not insert text: ${draft.blockReason}.")
+                return
+            }
+
+            val arguments = Bundle().apply {
+                putCharSequence(
+                    AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
+                    draft.textToSet,
+                )
+            }
+            if (focusedNode.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments)) {
+                showToast("Inserted VoiceMe test transcript.")
+            } else {
+                showToast("This field does not accept accessibility text insertion.")
+            }
+        } finally {
+            focusedNode.recycle()
+        }
+    }
+
+    private fun showToast(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
 
     private fun overlayLabel(detection: FocusedFieldDetection): String {
@@ -127,14 +171,16 @@ class VoiceMeAccessibilityService : AccessibilityService() {
         eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
         eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED
 
-    private fun AccessibilityNodeInfo.toFocusedFieldSnapshot(event: AccessibilityEvent): FocusedFieldSnapshot =
-        FocusedFieldSnapshot(
-            packageName = packageName?.toString() ?: event.packageName?.toString(),
-            className = className?.toString() ?: event.className?.toString(),
-            isFocused = isFocused,
-            isEditable = isEditable,
-            isPassword = isPassword,
-        )
+    private fun AccessibilityNodeInfo.toFocusedFieldSnapshot(
+        eventPackageName: String?,
+        eventClassName: String?,
+    ): FocusedFieldSnapshot = FocusedFieldSnapshot(
+        packageName = packageName?.toString() ?: eventPackageName,
+        className = className?.toString() ?: eventClassName,
+        isFocused = isFocused,
+        isEditable = isEditable,
+        isPassword = isPassword,
+    )
 
     private class OverlayDragTouchListener(
         private val windowManager: WindowManager,
