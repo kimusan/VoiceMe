@@ -19,7 +19,8 @@ The format follows Keep a Changelog principles, and versions should follow seman
 - HTTPS model artifact download plumbing with SHA-256 verification, private model-file storage, and deletion semantics before a model archive is marked downloaded.
 - Switched the default catalog candidate from English-only to a compact multilingual sherpa-onnx NeMo/FastConformer CTC int8 artifact with a real GitHub release URL and SHA-256 checksum.
 - Kept the compact English streaming model as an optional fallback candidate and documented that the small Parakeet artifacts found so far are English-only.
-- Separate downloaded-archive and prepared-for-dictation model states so verified archives are not misrepresented as ASR-ready before runtime preparation is implemented.
+- Separate downloaded-archive and prepared-for-dictation model states; verified sherpa `.tar.bz2` archives are marked prepared when `model.int8.onnx` and `tokens.txt` are present.
 - Release signing template and release-gate checklist for reproducible signed APK builds without committing keystores.
-- Action-based onboarding buttons for Accessibility settings, microphone permission, and model setup.
+- Action-based onboarding buttons for Accessibility settings, microphone permission, and model setup, with “already enabled/allowed/ready” labels when setup is complete.
 - Status-screen overlay test field that lets users reliably focus an editable field and trigger the actual Accessibility floating button after enabling the service.
+- Accessibility service readiness notification and broader text/window event handling so the floating button is easier to surface in modern input fields.

@@ -1,7 +1,11 @@
 package dk.schulz.voiceme.accessibility
 
 import android.accessibilityservice.AccessibilityService
+import android.annotation.SuppressLint
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.graphics.PixelFormat
+import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.view.MotionEvent
@@ -11,6 +15,8 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.app.NotificationCompat
+import dk.schulz.voiceme.R
 import dk.schulz.voiceme.settings.AppSettingsStore
 
 class VoiceMeAccessibilityService : AccessibilityService() {
@@ -25,12 +31,17 @@ class VoiceMeAccessibilityService : AccessibilityService() {
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
     }
 
+    override fun onServiceConnected() {
+        super.onServiceConnected()
+        showServiceReadyNotification()
+    }
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null || !event.isFocusRelevant()) {
             return
         }
 
-        val node = event.source
+        val node = rootInActiveWindow?.findFocus(AccessibilityNodeInfo.FOCUS_INPUT) ?: event.source
         if (node == null) {
             hideOverlay()
             lastDetection = null
@@ -64,6 +75,7 @@ class VoiceMeAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         hideOverlay()
+        cancelServiceReadyNotification()
         super.onDestroy()
     }
 
@@ -152,6 +164,43 @@ class VoiceMeAccessibilityService : AccessibilityService() {
         }
     }
 
+    @SuppressLint("MissingPermission")
+    private fun showServiceReadyNotification() {
+        ensureNotificationChannel()
+        val notification = NotificationCompat.Builder(this, ServiceChannelId)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(VoiceMeAccessibilityPresentation.NotificationTitle)
+            .setContentText(VoiceMeAccessibilityPresentation.NotificationText)
+            .setOngoing(true)
+            .setSilent(true)
+            .build()
+        runCatching {
+            getSystemService(NotificationManager::class.java).notify(ServiceNotificationId, notification)
+        }
+    }
+
+    private fun cancelServiceReadyNotification() {
+        runCatching {
+            getSystemService(NotificationManager::class.java).cancel(ServiceNotificationId)
+        }
+    }
+
+    private fun ensureNotificationChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val manager = getSystemService(NotificationManager::class.java)
+        if (manager.getNotificationChannel(ServiceChannelId) == null) {
+            manager.createNotificationChannel(
+                NotificationChannel(
+                    ServiceChannelId,
+                    "VoiceMe accessibility",
+                    NotificationManager.IMPORTANCE_LOW,
+                ).apply {
+                    description = "Shows when the VoiceMe accessibility floating button service is enabled."
+                },
+            )
+        }
+    }
+
     private fun overlayLayoutParams(): WindowManager.LayoutParams = WindowManager.LayoutParams(
         WindowManager.LayoutParams.WRAP_CONTENT,
         WindowManager.LayoutParams.WRAP_CONTENT,
@@ -168,6 +217,9 @@ class VoiceMeAccessibilityService : AccessibilityService() {
 
     private fun AccessibilityEvent.isFocusRelevant(): Boolean = eventType == AccessibilityEvent.TYPE_VIEW_FOCUSED ||
         eventType == AccessibilityEvent.TYPE_VIEW_CLICKED ||
+        eventType == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED ||
+        eventType == AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED ||
+        eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED ||
         eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
         eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED
 
@@ -181,6 +233,11 @@ class VoiceMeAccessibilityService : AccessibilityService() {
         isEditable = isEditable,
         isPassword = isPassword,
     )
+
+    companion object {
+        private const val ServiceChannelId = "voiceme_accessibility"
+        private const val ServiceNotificationId = 2001
+    }
 
     private class OverlayDragTouchListener(
         private val windowManager: WindowManager,

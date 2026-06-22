@@ -1,10 +1,13 @@
 package dk.schulz.voiceme.models
 
+import java.io.BufferedInputStream
 import java.io.File
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
+import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream
 
 interface ArtifactByteSource {
     fun open(artifact: ModelArtifact): InputStream
@@ -68,12 +71,37 @@ class ModelArtifactInstaller(
 
         if (artifactFile.exists()) artifactFile.delete()
         tempFile.renameTo(artifactFile)
-        return ModelArtifactInstallResult.Installed(artifactFile = artifactFile)
+        return ModelArtifactInstallResult.Installed(
+            artifactFile = artifactFile,
+            installState = artifactFile.runtimeInstallState(),
+        )
     }
 
     fun delete(model: VoiceModel): Boolean = model.directory().deleteRecursively()
 
     private fun VoiceModel.directory(): File = File(modelRootDirectory, id)
+
+    private fun File.runtimeInstallState(): ModelInstallState = if (containsSherpaRuntimeFiles()) {
+        ModelInstallState.PreparedForDictation
+    } else {
+        ModelInstallState.DownloadedArchive
+    }
+
+    private fun File.containsSherpaRuntimeFiles(): Boolean {
+        if (!name.endsWith(".tar.bz2")) return false
+        val entries = mutableSetOf<String>()
+        return runCatching {
+            TarArchiveInputStream(BZip2CompressorInputStream(BufferedInputStream(inputStream()))).use { tar ->
+                while (true) {
+                    val entry = tar.nextEntry ?: break
+                    if (!entry.isDirectory) {
+                        entries += entry.name.substringAfterLast('/')
+                    }
+                }
+            }
+            entries.contains("model.int8.onnx") && entries.contains("tokens.txt")
+        }.getOrDefault(false)
+    }
 
     private fun ByteArray.toHexString(): String = joinToString(separator = "") { byte -> "%02x".format(byte) }
 }

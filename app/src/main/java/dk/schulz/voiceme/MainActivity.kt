@@ -1,6 +1,7 @@
 package dk.schulz.voiceme
 
 import android.Manifest
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -13,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
+import dk.schulz.voiceme.accessibility.VoiceMeAccessibilityService
 import dk.schulz.voiceme.dictation.DictationSessionReducer
 import dk.schulz.voiceme.dictation.DictationSessionState
 import dk.schulz.voiceme.dictation.VoiceMeRecordingService
@@ -20,6 +22,7 @@ import dk.schulz.voiceme.models.ModelArtifactInstallResult
 import dk.schulz.voiceme.models.ModelArtifactInstaller
 import dk.schulz.voiceme.models.ModelCatalogReducer
 import dk.schulz.voiceme.models.ModelCatalogState
+import dk.schulz.voiceme.models.ModelInstallState
 import dk.schulz.voiceme.settings.AppSettings
 import dk.schulz.voiceme.settings.AppSettingsStore
 import dk.schulz.voiceme.ui.VoiceMeApp
@@ -29,6 +32,7 @@ class MainActivity : ComponentActivity() {
     private var dictationState by mutableStateOf(
         DictationSessionState.idle(hasMicrophonePermission = false),
     )
+    private var isAccessibilityEnabled by mutableStateOf(false)
     private var modelDownloadStatus by mutableStateOf<String?>(null)
 
     private val microphonePermissionLauncher = registerForActivityResult(
@@ -46,7 +50,7 @@ class MainActivity : ComponentActivity() {
 
         val settingsStore = AppSettingsStore(this)
         appSettings = settingsStore.load()
-        dictationState = DictationSessionState.idle(hasMicrophonePermission = hasMicrophonePermission())
+        refreshRuntimeStatus()
 
         fun saveSettings(settings: AppSettings) {
             appSettings = settings
@@ -59,6 +63,7 @@ class MainActivity : ComponentActivity() {
                 dictationState = dictationState,
                 modelCatalogState = modelCatalogState(),
                 modelDownloadStatus = modelDownloadStatus,
+                isAccessibilityEnabled = isAccessibilityEnabled,
                 onSettingsChange = ::saveSettings,
                 onOpenAccessibilitySettings = {
                     startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
@@ -102,6 +107,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        refreshRuntimeStatus()
+    }
+
     private fun startRecordingShell() {
         dictationState = DictationSessionReducer.startRecording(
             dictationState.copy(hasMicrophonePermission = hasMicrophonePermission()),
@@ -123,6 +133,23 @@ class MainActivity : ComponentActivity() {
         this,
         Manifest.permission.RECORD_AUDIO,
     ) == PackageManager.PERMISSION_GRANTED
+
+    private fun refreshRuntimeStatus() {
+        val hasMic = hasMicrophonePermission()
+        dictationState = dictationState.copy(hasMicrophonePermission = hasMic)
+        isAccessibilityEnabled = isVoiceMeAccessibilityEnabled()
+    }
+
+    private fun isVoiceMeAccessibilityEnabled(): Boolean {
+        val expected = ComponentName(this, VoiceMeAccessibilityService::class.java).flattenToString()
+        val enabledServices = Settings.Secure.getString(
+            contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+        ).orEmpty()
+        return enabledServices.split(':').any { service ->
+            service.equals(expected, ignoreCase = true)
+        }
+    }
 
     private fun modelCatalogState(): ModelCatalogState = ModelCatalogState(
         selectedModelId = appSettings.selectedModelId,
@@ -152,8 +179,17 @@ class MainActivity : ComponentActivity() {
                 when (result) {
                     is ModelArtifactInstallResult.Installed -> {
                         val currentState = modelCatalogState()
-                        val updated = ModelCatalogReducer.markDownloaded(currentState, modelId)
-                        modelDownloadStatus = "Verified and stored ${model.name}. Runtime preparation is still required before dictation."
+                        val downloaded = ModelCatalogReducer.markDownloaded(currentState, modelId)
+                        val updated = if (result.installState == ModelInstallState.PreparedForDictation) {
+                            ModelCatalogReducer.markPrepared(downloaded, modelId)
+                        } else {
+                            downloaded
+                        }
+                        modelDownloadStatus = if (result.installState == ModelInstallState.PreparedForDictation) {
+                            "Verified and prepared ${model.name}. The model files are ready for the ASR runtime adapter."
+                        } else {
+                            "Verified and stored ${model.name}. Runtime preparation is still required before dictation."
+                        }
                         onSettingsReady(
                             appSettings.copy(
                                 selectedModelId = appSettings.selectedModelId,

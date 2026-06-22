@@ -32,4 +32,35 @@ class OnboardingFlowTest {
         assertTrue(actionableSteps.any { it.actionLabel.contains("microphone", ignoreCase = true) })
         assertTrue(actionableSteps.any { it.actionLabel.contains("models", ignoreCase = true) })
     }
+
+    @Test
+    fun onboardingActionLabelsReflectAlreadyGrantedPermissions() {
+        val status = OnboardingPermissionStatus(
+            isAccessibilityEnabled = true,
+            hasMicrophonePermission = true,
+            isSelectedModelReady = true,
+        )
+
+        assertEquals(
+            "Accessibility already enabled",
+            OnboardingActionLabel.forStep(
+                step = OnboardingFlow.default().steps.first { it.id == OnboardingStepId.InteractionMode },
+                status = status,
+            ),
+        )
+        assertEquals(
+            "Microphone already allowed",
+            OnboardingActionLabel.forStep(
+                step = OnboardingFlow.default().steps.first { it.id == OnboardingStepId.Microphone },
+                status = status,
+            ),
+        )
+        assertEquals(
+            "Model ready",
+            OnboardingActionLabel.forStep(
+                step = OnboardingFlow.default().steps.first { it.id == OnboardingStepId.OfflineModel },
+                status = status,
+            ),
+        )
+    }
 }

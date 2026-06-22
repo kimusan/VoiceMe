@@ -7,7 +7,11 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.InputStream
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream
+import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream
 
 class ModelArtifactInstallerTest {
     @get:Rule
@@ -54,6 +58,51 @@ class ModelArtifactInstallerTest {
     }
 
     @Test
+    fun installerMarksArchivePreparedWhenRuntimeFilesArePresent() {
+        val archiveBytes = modelArchiveBytes(
+            "sherpa-onnx/model.int8.onnx" to "fake onnx".encodeToByteArray(),
+            "sherpa-onnx/tokens.txt" to "<blk>\na\nb\n".encodeToByteArray(),
+        )
+        val model = ModelCatalog.default().recommended.copy(
+            artifact = ModelCatalog.default().recommended.artifact.copy(
+                sha256 = archiveBytes.sha256Hex(),
+            ),
+        )
+        val installer = ModelArtifactInstaller(
+            byteSource = FakeArtifactByteSource(archiveBytes),
+            modelRootDirectory = temporaryFolder.root,
+        )
+
+        val result = installer.install(model)
+
+        assertTrue(result is ModelArtifactInstallResult.Installed)
+        result as ModelArtifactInstallResult.Installed
+        assertEquals(ModelInstallState.PreparedForDictation, result.installState)
+    }
+
+    @Test
+    fun installerKeepsArchiveDownloadedOnlyWhenRuntimeFilesAreMissing() {
+        val archiveBytes = modelArchiveBytes(
+            "sherpa-onnx/model.int8.onnx" to "fake onnx".encodeToByteArray(),
+        )
+        val model = ModelCatalog.default().recommended.copy(
+            artifact = ModelCatalog.default().recommended.artifact.copy(
+                sha256 = archiveBytes.sha256Hex(),
+            ),
+        )
+        val installer = ModelArtifactInstaller(
+            byteSource = FakeArtifactByteSource(archiveBytes),
+            modelRootDirectory = temporaryFolder.root,
+        )
+
+        val result = installer.install(model)
+
+        assertTrue(result is ModelArtifactInstallResult.Installed)
+        result as ModelArtifactInstallResult.Installed
+        assertEquals(ModelInstallState.DownloadedArchive, result.installState)
+    }
+
+    @Test
     fun deleteRemovesInstalledModelDirectory() {
         val model = ModelCatalog.default().recommended.copy(
             artifact = ModelCatalog.default().recommended.artifact.copy(
@@ -71,6 +120,26 @@ class ModelArtifactInstallerTest {
         assertTrue(installer.delete(model))
         assertFalse(temporaryFolder.root.resolve(model.id).exists())
     }
+
+    private fun modelArchiveBytes(vararg entries: Pair<String, ByteArray>): ByteArray {
+        val output = ByteArrayOutputStream()
+        BZip2CompressorOutputStream(output).use { compressed ->
+            TarArchiveOutputStream(compressed).use { tar ->
+                entries.forEach { (name, bytes) ->
+                    val entry = TarArchiveEntry(name).apply { size = bytes.size.toLong() }
+                    tar.putArchiveEntry(entry)
+                    tar.write(bytes)
+                    tar.closeArchiveEntry()
+                }
+            }
+        }
+        return output.toByteArray()
+    }
+
+    private fun ByteArray.sha256Hex(): String = java.security.MessageDigest
+        .getInstance("SHA-256")
+        .digest(this)
+        .joinToString(separator = "") { byte -> "%02x".format(byte) }
 
     private class FakeArtifactByteSource(
         private val bytes: ByteArray,

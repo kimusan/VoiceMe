@@ -37,11 +37,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import dk.schulz.voiceme.R
 import dk.schulz.voiceme.dictation.DictationBlockReason
+import dk.schulz.voiceme.accessibility.VoiceMeAccessibilityPresentation
 import dk.schulz.voiceme.dictation.DictationSessionState
 import dk.schulz.voiceme.models.ModelCatalogState
 import dk.schulz.voiceme.models.VoiceModel
 import dk.schulz.voiceme.onboarding.OnboardingAction
+import dk.schulz.voiceme.onboarding.OnboardingActionLabel
 import dk.schulz.voiceme.onboarding.OnboardingFlow
+import dk.schulz.voiceme.onboarding.OnboardingPermissionStatus
 import dk.schulz.voiceme.onboarding.OnboardingStep
 import dk.schulz.voiceme.settings.AppSettings
 import dk.schulz.voiceme.settings.DictationInteraction
@@ -53,6 +56,7 @@ fun VoiceMeApp(
     dictationState: DictationSessionState = DictationSessionState.idle(hasMicrophonePermission = false),
     modelCatalogState: ModelCatalogState = ModelCatalogState.default(),
     modelDownloadStatus: String? = null,
+    isAccessibilityEnabled: Boolean = false,
     onSettingsChange: (AppSettings) -> Unit = {},
     onOpenAccessibilitySettings: () -> Unit = {},
     onRequestMicrophonePermission: () -> Unit = {},
@@ -68,6 +72,7 @@ fun VoiceMeApp(
             dictationState = dictationState,
             modelCatalogState = modelCatalogState,
             modelDownloadStatus = modelDownloadStatus,
+            isAccessibilityEnabled = isAccessibilityEnabled,
             onSettingsChange = onSettingsChange,
             onOpenAccessibilitySettings = onOpenAccessibilitySettings,
             onRequestMicrophonePermission = onRequestMicrophonePermission,
@@ -87,6 +92,7 @@ fun VoiceMeHomeScreen(
     dictationState: DictationSessionState,
     modelCatalogState: ModelCatalogState,
     modelDownloadStatus: String?,
+    isAccessibilityEnabled: Boolean,
     onSettingsChange: (AppSettings) -> Unit,
     onOpenAccessibilitySettings: () -> Unit,
     onRequestMicrophonePermission: () -> Unit,
@@ -102,6 +108,11 @@ fun VoiceMeHomeScreen(
     var selectedSection by rememberSaveable {
         mutableIntStateOf(if (appSettings.onboardingComplete) 1 else 0)
     }
+    val onboardingPermissionStatus = OnboardingPermissionStatus(
+        isAccessibilityEnabled = isAccessibilityEnabled,
+        hasMicrophonePermission = dictationState.hasMicrophonePermission,
+        isSelectedModelReady = modelCatalogState.isReadyForDictation,
+    )
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -126,6 +137,7 @@ fun VoiceMeHomeScreen(
                     step = onboardingFlow.currentStep(currentStep),
                     currentStep = currentStep,
                     totalSteps = onboardingFlow.totalSteps,
+                    permissionStatus = onboardingPermissionStatus,
                     onBack = {
                         currentStep = onboardingFlow.previousIndex(currentStep)
                     },
@@ -151,6 +163,7 @@ fun VoiceMeHomeScreen(
                     appSettings = appSettings,
                     dictationState = dictationState,
                     modelCatalogState = modelCatalogState,
+                    isAccessibilityEnabled = isAccessibilityEnabled,
                     onReviewSetup = {
                         currentStep = 0
                         selectedSection = 0
@@ -203,6 +216,7 @@ private fun VoiceMeOnboardingScreen(
     step: OnboardingStep,
     currentStep: Int,
     totalSteps: Int,
+    permissionStatus: OnboardingPermissionStatus,
     onBack: () -> Unit,
     onNext: () -> Unit,
     onStepAction: (OnboardingAction) -> Unit,
@@ -249,7 +263,7 @@ private fun VoiceMeOnboardingScreen(
                 onClick = { onStepAction(step.action) },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(step.actionLabel)
+                Text(OnboardingActionLabel.forStep(step, permissionStatus))
             }
         }
         Row(
@@ -278,6 +292,7 @@ private fun VoiceMeStatusScreen(
     appSettings: AppSettings,
     dictationState: DictationSessionState,
     modelCatalogState: ModelCatalogState,
+    isAccessibilityEnabled: Boolean,
     onReviewSetup: () -> Unit,
     onOpenAccessibilitySettings: () -> Unit,
     onRequestMicrophonePermission: () -> Unit,
@@ -310,7 +325,7 @@ private fun VoiceMeStatusScreen(
         )
         StatusCard(
             title = "Input strategy",
-            body = "VoiceMe is registered as an accessibility service candidate. Android grants window-content capability so the service can identify editable focused fields and place a draggable preview mic. It does not inspect field text, record audio, or insert dictated text yet.",
+            body = VoiceMeAccessibilityPresentation.statusText(isAccessibilityEnabled),
         )
         StatusCard(
             title = "Current dictation interaction",
@@ -406,7 +421,7 @@ private fun onboardingHelpText(step: OnboardingStep): String = when (step.action
     OnboardingAction.RequestMicrophonePermission ->
         "Android will show the microphone permission dialog now. If accepted, VoiceMe starts its local foreground recording shell so the permission path is exercised."
     OnboardingAction.OpenModels ->
-        "The Models screen shows the default multilingual model, checksum, size, and download action. Downloaded archives are still gated until runtime preparation is implemented."
+        "The Models screen shows the default multilingual model, checksum, size, and download action. Verified sherpa archives that contain model.int8.onnx and tokens.txt are now marked prepared for the ASR runtime adapter."
     OnboardingAction.None ->
         "No permission is requested on this step. Continue when you are ready."
 }
@@ -625,6 +640,7 @@ private fun VoiceMeHomeScreenPreview() {
             dictationState = DictationSessionState.idle(hasMicrophonePermission = false),
             modelCatalogState = ModelCatalogState.default(),
             modelDownloadStatus = null,
+            isAccessibilityEnabled = false,
             onSettingsChange = {},
             onOpenAccessibilitySettings = {},
             onRequestMicrophonePermission = {},

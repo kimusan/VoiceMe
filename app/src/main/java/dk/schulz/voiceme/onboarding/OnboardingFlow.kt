@@ -25,6 +25,33 @@ data class OnboardingStep(
     val actionLabel: String = "",
 )
 
+data class OnboardingPermissionStatus(
+    val isAccessibilityEnabled: Boolean,
+    val hasMicrophonePermission: Boolean,
+    val isSelectedModelReady: Boolean,
+)
+
+object OnboardingActionLabel {
+    fun forStep(step: OnboardingStep, status: OnboardingPermissionStatus): String = when (step.action) {
+        OnboardingAction.OpenAccessibilitySettings -> if (status.isAccessibilityEnabled) {
+            "Accessibility already enabled"
+        } else {
+            step.actionLabel
+        }
+        OnboardingAction.RequestMicrophonePermission -> if (status.hasMicrophonePermission) {
+            "Microphone already allowed"
+        } else {
+            step.actionLabel
+        }
+        OnboardingAction.OpenModels -> if (status.isSelectedModelReady) {
+            "Model ready"
+        } else {
+            step.actionLabel
+        }
+        OnboardingAction.None -> step.actionLabel
+    }
+}
+
 data class OnboardingFlow(
     val steps: List<OnboardingStep>,
 ) {
