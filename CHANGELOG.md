@@ -10,3 +10,4 @@ The format follows Keep a Changelog principles, and versions should follow seman
 
 - Initial product, architecture, privacy, permissions, UX, and release planning documents.
 - Android/Kotlin project bootstrap with Gradle wrapper, Compose Material 3 app shell, dynamic color theme, debug/release build configuration, and a unit test.
+- Interactive Material 3 setup preview with onboarding, status, and settings sections for the privacy-first dictation flow.
