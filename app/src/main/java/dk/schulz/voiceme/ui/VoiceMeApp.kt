@@ -17,13 +17,14 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,21 +36,38 @@ import androidx.compose.ui.unit.dp
 import dk.schulz.voiceme.R
 import dk.schulz.voiceme.onboarding.OnboardingFlow
 import dk.schulz.voiceme.onboarding.OnboardingStep
+import dk.schulz.voiceme.settings.AppSettings
+import dk.schulz.voiceme.settings.DictationInteraction
 import dk.schulz.voiceme.ui.theme.VoiceMeTheme
 
 @Composable
-fun VoiceMeApp() {
+fun VoiceMeApp(
+    appSettings: AppSettings = AppSettings.default(),
+    onSettingsChange: (AppSettings) -> Unit = {},
+    onOpenAccessibilitySettings: () -> Unit = {},
+) {
     VoiceMeTheme {
-        VoiceMeHomeScreen()
+        VoiceMeHomeScreen(
+            appSettings = appSettings,
+            onSettingsChange = onSettingsChange,
+            onOpenAccessibilitySettings = onOpenAccessibilitySettings,
+        )
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VoiceMeHomeScreen(modifier: Modifier = Modifier) {
+fun VoiceMeHomeScreen(
+    appSettings: AppSettings,
+    onSettingsChange: (AppSettings) -> Unit,
+    onOpenAccessibilitySettings: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val onboardingFlow = remember { OnboardingFlow.default() }
     var currentStep by rememberSaveable { mutableIntStateOf(0) }
-    var selectedSection by rememberSaveable { mutableIntStateOf(0) }
+    var selectedSection by rememberSaveable {
+        mutableIntStateOf(if (appSettings.onboardingComplete) 1 else 0)
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -79,6 +97,7 @@ fun VoiceMeHomeScreen(modifier: Modifier = Modifier) {
                     },
                     onNext = {
                         if (currentStep == onboardingFlow.lastStepIndex) {
+                            onSettingsChange(appSettings.completeOnboarding())
                             selectedSection = 1
                         } else {
                             currentStep = onboardingFlow.nextIndex(currentStep)
@@ -87,13 +106,18 @@ fun VoiceMeHomeScreen(modifier: Modifier = Modifier) {
                 )
 
                 1 -> VoiceMeStatusScreen(
+                    appSettings = appSettings,
                     onReviewSetup = {
                         currentStep = 0
                         selectedSection = 0
                     },
+                    onOpenAccessibilitySettings = onOpenAccessibilitySettings,
                 )
 
-                else -> VoiceMeSettingsPreview()
+                else -> VoiceMeSettingsPreview(
+                    appSettings = appSettings,
+                    onSettingsChange = onSettingsChange,
+                )
             }
         }
     }
@@ -159,7 +183,7 @@ private fun VoiceMeOnboardingScreen(
             ),
         ) {
             Text(
-                text = "No permissions are requested by this preview screen. VoiceMe will ask just-in-time once the real microphone, overlay, and model steps are implemented.",
+                text = "No microphone or model download is requested by this preview. Accessibility settings can be opened from the status screen so you can see where VoiceMe will be enabled.",
                 modifier = Modifier.padding(16.dp),
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -187,7 +211,9 @@ private fun VoiceMeOnboardingScreen(
 
 @Composable
 private fun VoiceMeStatusScreen(
+    appSettings: AppSettings,
     onReviewSetup: () -> Unit,
+    onOpenAccessibilitySettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -196,27 +222,40 @@ private fun VoiceMeStatusScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "VoiceMe setup preview",
+            text = if (appSettings.onboardingComplete) {
+                "VoiceMe setup preview complete"
+            } else {
+                "VoiceMe setup preview"
+            },
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
         )
         Text(
-            text = "The app shell is installed and interactive. Dictation, permissions, model downloads, and the floating mic service are the next implementation milestones.",
+            text = "The app shell is installed and interactive. Accessibility registration is now present, while dictation, recording, and model downloads remain future milestones.",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
         )
         StatusCard(
             title = "Privacy default",
-            body = "Offline-first, no telemetry, no transcript history by default.",
+            body = "Offline-only: ${yesNo(appSettings.offlineOnly)}. Transcript history: ${if (appSettings.transcriptHistoryEnabled) "on" else "off"}.",
         )
         StatusCard(
             title = "Input strategy",
-            body = "Primary path: a floating mic beside the normal keyboard. Fallback path: VoiceMe keyboard/IME for apps that block accessibility insertion.",
+            body = "VoiceMe is registered as an accessibility service candidate. Android grants window-content capability for future focused-field detection, but this preview service does not inspect text, record audio, draw overlays, or insert dictated text yet.",
         )
         StatusCard(
-            title = "Model setup",
-            body = "A future model catalog will show size, language, license, and checksum before any download.",
+            title = "Current dictation interaction",
+            body = when (appSettings.dictationInteraction) {
+                DictationInteraction.HoldToTalk -> "Hold-to-talk: safest default for accidental dictation."
+                DictationInteraction.TapToToggle -> "Tap-to-toggle: easier for longer dictation once recording exists."
+            },
         )
+        Button(
+            onClick = onOpenAccessibilitySettings,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Open Android Accessibility settings")
+        }
         OutlinedButton(onClick = onReviewSetup) {
             Text("Review setup again")
         }
@@ -224,7 +263,11 @@ private fun VoiceMeStatusScreen(
 }
 
 @Composable
-private fun VoiceMeSettingsPreview(modifier: Modifier = Modifier) {
+private fun VoiceMeSettingsPreview(
+    appSettings: AppSettings,
+    onSettingsChange: (AppSettings) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -233,21 +276,37 @@ private fun VoiceMeSettingsPreview(modifier: Modifier = Modifier) {
             text = "Settings preview",
             style = MaterialTheme.typography.headlineMedium,
         )
-        StatusCard(
-            title = "Dictation interaction",
-            body = "Planned options: hold-to-talk, tap-to-toggle, haptics, and endpointing delay.",
+        SettingSwitchCard(
+            title = "Tap to toggle dictation",
+            body = "Off means hold-to-talk. This choice is saved locally now and will control recording behavior later.",
+            checked = appSettings.dictationInteraction == DictationInteraction.TapToToggle,
+            onCheckedChange = { enabled ->
+                onSettingsChange(
+                    appSettings.withDictationInteraction(
+                        if (enabled) DictationInteraction.TapToToggle else DictationInteraction.HoldToTalk,
+                    ),
+                )
+            },
         )
-        StatusCard(
-            title = "Floating control",
-            body = "Planned options: size, opacity, position reset, and keyboard-area placement.",
+        SettingSwitchCard(
+            title = "Offline-only mode",
+            body = "Keep VoiceMe from using network features except explicit future model-download flows.",
+            checked = appSettings.offlineOnly,
+            onCheckedChange = { enabled ->
+                onSettingsChange(appSettings.copy(offlineOnly = enabled))
+            },
         )
-        StatusCard(
-            title = "Local data",
-            body = "Planned controls: delete models, clear temporary transcripts, and confirm offline-only behavior.",
-        )
-        StatusCard(
-            title = "Sensitive fields",
+        SettingSwitchCard(
+            title = "Hide in sensitive fields",
             body = "Planned behavior: pause or hide dictation for password and other sensitive input fields.",
+            checked = appSettings.hideInSensitiveFields,
+            onCheckedChange = { enabled ->
+                onSettingsChange(appSettings.copy(hideInSensitiveFields = enabled))
+            },
+        )
+        StatusCard(
+            title = "Transcript history locked off",
+            body = "Transcript history remains disabled in this build. A future release may expose it only as an explicit opt-in setting.",
         )
     }
 }
@@ -276,10 +335,52 @@ private fun StatusCard(
     }
 }
 
+@Composable
+private fun SettingSwitchCard(
+    title: String,
+    body: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = body,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+            )
+        }
+    }
+}
+
+private fun yesNo(value: Boolean): String = if (value) "yes" else "no"
+
 @Preview(showBackground = true)
 @Composable
 private fun VoiceMeHomeScreenPreview() {
     VoiceMeTheme(dynamicColor = false) {
-        VoiceMeHomeScreen()
+        VoiceMeHomeScreen(
+            appSettings = AppSettings.default(),
+            onSettingsChange = {},
+            onOpenAccessibilitySettings = {},
+        )
     }
 }

@@ -2,6 +2,12 @@
 
 This document tracks every Android permission VoiceMe requests and why. Keep it current with each release.
 
+## Implemented capabilities
+
+| Permission / capability | Required for | Current status |
+| --- | --- | --- |
+| Accessibility service binding (`android.permission.BIND_ACCESSIBILITY_SERVICE`) | User-enabled service that will detect focused editable fields and host the future keyboard-adjacent mic control | Registered in the app manifest. The service requests window-content capability so Android can support future focused-field detection. The current Kotlin service is a safe stub: it receives accessibility events but does not inspect text content, record audio, draw overlays, or insert dictated text yet. |
+
 ## Planned permissions
 
 | Permission / capability | Required for | Notes |

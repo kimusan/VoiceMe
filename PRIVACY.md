@@ -18,6 +18,14 @@ VoiceMe uses the microphone only while the user actively starts dictation. Audio
 
 Dictated text is inserted into the user's chosen input field. VoiceMe should not store transcript history by default. If transcript history is added later, it must be local-only, opt-in, and deletable from settings.
 
+## Accessibility service
+
+VoiceMe includes an AccessibilityService registration so users can enable the future keyboard-adjacent dictation mode from Android settings. This capability is needed to detect focused editable fields and place a mic control next to the normal keyboard. In the current preview build, the service stub receives accessibility events but does not inspect text content, record audio, draw overlays, or insert dictated text.
+
+## Local preferences
+
+VoiceMe stores a small set of local preferences, such as onboarding completion and preview settings for dictation interaction, offline-only mode, and sensitive-field behavior. These preferences stay in the app's private storage and Android backup is disabled for the app.
+
 ## Model files
 
 ASR models may be downloaded after the user chooses a model. Downloads must use HTTPS and checksum verification. Users must be able to delete downloaded models. Model licenses and approximate sizes must be shown before download.
