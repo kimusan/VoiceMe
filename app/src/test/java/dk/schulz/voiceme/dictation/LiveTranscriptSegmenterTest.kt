@@ -16,11 +16,29 @@ class LiveTranscriptSegmenterTest {
     }
 
     @Test
+    fun emitsStableWordChunksWhenStreamingModelHasNoPunctuation() {
+        val segmenter = LiveTranscriptSegmenter()
+
+        assertNull(segmenter.nextStableSegment("HELLO"))
+        assertEquals("Hello", segmenter.nextStableSegment("HELLO WORLD"))
+        assertEquals("world", segmenter.nextStableSegment("HELLO WORLD THIS"))
+        assertEquals("this is", segmenter.nextStableSegment("HELLO WORLD THIS IS LIVE"))
+    }
+
+    @Test
     fun remainingSegmentReturnsUncommittedTailAtStop() {
         val segmenter = LiveTranscriptSegmenter()
 
-        assertEquals("first sentence.", segmenter.nextCompletedSegment("first sentence. unfinished tail"))
-        assertEquals("unfinished tail", segmenter.remainingSegment("first sentence. unfinished tail"))
-        assertNull(segmenter.remainingSegment("first sentence. unfinished tail"))
+        assertEquals("First sentence.", segmenter.nextCompletedSegment("FIRST SENTENCE. UNFINISHED TAIL"))
+        assertEquals("unfinished tail", segmenter.remainingSegment("FIRST SENTENCE. UNFINISHED TAIL"))
+        assertNull(segmenter.remainingSegment("FIRST SENTENCE. UNFINISHED TAIL"))
+    }
+
+    @Test
+    fun preservesMixedCaseTranscripts() {
+        val segmenter = LiveTranscriptSegmenter()
+
+        assertEquals("Hello", segmenter.nextStableSegment("Hello world"))
+        assertEquals("world", segmenter.remainingSegment("Hello world"))
     }
 }

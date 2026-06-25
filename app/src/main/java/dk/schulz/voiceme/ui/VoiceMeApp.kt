@@ -472,8 +472,8 @@ private fun VoiceMeSettingsPreview(
             },
         )
         SettingSwitchCard(
-            title = "Live sentence insertion",
-            body = "When the selected ASR runtime supports streaming, insert completed sentences while you speak. Offline Parakeet currently falls back to final insertion after stop.",
+            title = "Live insertion",
+            body = "When the selected ASR runtime supports streaming, insert stable words or completed sentences while you speak. Offline Parakeet currently falls back to final insertion after stop.",
             checked = appSettings.liveSentenceInsertionEnabled,
             onCheckedChange = { enabled ->
                 onSettingsChange(appSettings.copy(liveSentenceInsertionEnabled = enabled))

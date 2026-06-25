@@ -174,7 +174,7 @@ class VoiceMeRecordingService : Service() {
                 val text = recognizer.getResult(stream).text.trim()
                 if (text.isNotBlank()) {
                     lastText = text
-                    liveSegmenter?.nextCompletedSegment(text)?.let(::broadcastLiveTranscript)
+                    liveSegmenter?.nextStableSegment(text)?.let(::broadcastLiveTranscript)
                 }
             }
             // Avoid a final native decode during service teardown. On the current sherpa
