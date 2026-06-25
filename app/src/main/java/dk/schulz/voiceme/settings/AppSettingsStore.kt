@@ -17,6 +17,7 @@ class AppSettingsStore(
             DictationInteractionKey to preferences.getString(DictationInteractionKey, null).orEmpty(),
             OfflineOnly to preferences.getString(OfflineOnly, null).orEmpty(),
             TranscriptHistoryEnabled to preferences.getString(TranscriptHistoryEnabled, null).orEmpty(),
+            LiveSentenceInsertionEnabled to preferences.getString(LiveSentenceInsertionEnabled, null).orEmpty(),
             HideInSensitiveFields to preferences.getString(HideInSensitiveFields, null).orEmpty(),
             SelectedModelId to preferences.getString(SelectedModelId, null).orEmpty(),
             DownloadedModelIds to preferences.getString(DownloadedModelIds, null).orEmpty(),
@@ -40,6 +41,7 @@ class AppSettingsStore(
         private const val DictationInteractionKey = "dictationInteraction"
         private const val OfflineOnly = "offlineOnly"
         private const val TranscriptHistoryEnabled = "transcriptHistoryEnabled"
+        private const val LiveSentenceInsertionEnabled = "liveSentenceInsertionEnabled"
         private const val HideInSensitiveFields = "hideInSensitiveFields"
         private const val SelectedModelId = "selectedModelId"
         private const val DownloadedModelIds = "downloadedModelIds"

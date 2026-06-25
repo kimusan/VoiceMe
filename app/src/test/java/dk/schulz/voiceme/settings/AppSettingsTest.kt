@@ -14,6 +14,7 @@ class AppSettingsTest {
         assertEquals(DictationInteraction.HoldToTalk, settings.dictationInteraction)
         assertTrue(settings.offlineOnly)
         assertFalse(settings.transcriptHistoryEnabled)
+        assertFalse(settings.liveSentenceInsertionEnabled)
         assertTrue(settings.hideInSensitiveFields)
         assertEquals(16, settings.overlayOffsetXDp)
         assertTrue(settings.overlayOffsetYDp >= 320)
@@ -37,6 +38,7 @@ class AppSettingsTest {
             dictationInteraction = DictationInteraction.TapToToggle,
             offlineOnly = true,
             transcriptHistoryEnabled = false,
+            liveSentenceInsertionEnabled = true,
             hideInSensitiveFields = true,
             selectedModelId = AppSettings.default().selectedModelId,
             downloadedModelIds = setOf("sherpa-onnx-streaming-zipformer-en-int8"),
@@ -49,5 +51,6 @@ class AppSettingsTest {
 
         assertEquals(original, restored)
         assertFalse(AppSettingsCodec.decode(emptyMap()).transcriptHistoryEnabled)
+        assertFalse(AppSettingsCodec.decode(emptyMap()).liveSentenceInsertionEnabled)
     }
 }

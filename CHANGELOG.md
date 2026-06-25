@@ -33,3 +33,4 @@ The format follows Keep a Changelog principles, and versions should follow seman
 - Model downloads now reject benchmark/reference entries before checksum work starts, keep progress visible above the model-list scroll, and disable duplicate download/delete/select actions while a download is active.
 - Setup/status/settings/models navigation now stays pinned at the top while each section scrolls.
 - Placeholder/hint text from target fields is no longer prepended to inserted dictation text.
+- Added a Settings toggle for live sentence insertion. Streaming recognizers can insert completed sentence chunks while recording; offline Parakeet remains final-on-stop until an offline chunking/partial adapter is implemented.

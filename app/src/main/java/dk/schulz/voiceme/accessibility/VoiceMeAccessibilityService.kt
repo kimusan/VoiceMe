@@ -50,6 +50,12 @@ class VoiceMeAccessibilityService : AccessibilityService() {
                     ) ?: return
                     insertTranscriptIntoFocusedField(transcript)
                 }
+                DictationTranscriptContract.ActionLiveTranscript -> {
+                    val transcript = DictationTranscriptContract.cleanLiveTranscript(
+                        intent.getStringExtra(DictationTranscriptContract.ExtraTranscript),
+                    ) ?: return
+                    insertTranscriptIntoFocusedField(transcript)
+                }
                 DictationTranscriptContract.ActionProcessingState -> {
                     isDictationProcessing = intent.getBooleanExtra(DictationTranscriptContract.ExtraIsProcessing, false)
                     keepActiveOverlayVisible()
@@ -67,6 +73,7 @@ class VoiceMeAccessibilityService : AccessibilityService() {
             dictationReceiver,
             IntentFilter().apply {
                 addAction(DictationTranscriptContract.ActionFinalTranscript)
+                addAction(DictationTranscriptContract.ActionLiveTranscript)
                 addAction(DictationTranscriptContract.ActionProcessingState)
             },
             ContextCompat.RECEIVER_NOT_EXPORTED,

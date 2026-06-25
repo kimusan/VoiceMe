@@ -131,6 +131,8 @@ class VoiceMeRecordingService : Service() {
         var recognizer: OnlineRecognizer? = null
         var stream: OnlineStream? = null
         var lastText = ""
+        val settings = settingsStore.load()
+        val liveSegmenter = if (settings.liveSentenceInsertionEnabled) LiveTranscriptSegmenter() else null
         try {
             recognizer = OnlineRecognizer(
                 assetManager = null,
@@ -170,14 +172,18 @@ class VoiceMeRecordingService : Service() {
                     recognizer.decode(stream)
                 }
                 val text = recognizer.getResult(stream).text.trim()
-                if (text.isNotBlank()) lastText = text
+                if (text.isNotBlank()) {
+                    lastText = text
+                    liveSegmenter?.nextCompletedSegment(text)?.let(::broadcastLiveTranscript)
+                }
             }
             // Avoid a final native decode during service teardown. On the current sherpa
             // Android runtime this path can abort the process after the foreground
             // service is stopped, which also restarts the accessibility overlay. Use
             // the last stable partial result until the runtime path is hardened enough
             // for near-real-time partial insertion.
-            broadcastFinalTranscript(lastText)
+            val finalText = liveSegmenter?.remainingSegment(lastText) ?: lastText
+            broadcastFinalTranscript(finalText)
         } catch (error: Throwable) {
             notifyStatus("VoiceMe dictation stopped: ${error.message ?: error::class.java.simpleName}.")
         } finally {
@@ -239,10 +245,19 @@ class VoiceMeRecordingService : Service() {
 
     private fun broadcastFinalTranscript(transcript: String) {
         val clean = DictationTranscriptContract.cleanFinalTranscript(transcript) ?: return
+        sendTranscriptBroadcast(DictationTranscriptContract.ActionFinalTranscript, clean)
+    }
+
+    private fun broadcastLiveTranscript(transcript: String) {
+        val clean = DictationTranscriptContract.cleanLiveTranscript(transcript) ?: return
+        sendTranscriptBroadcast(DictationTranscriptContract.ActionLiveTranscript, clean)
+    }
+
+    private fun sendTranscriptBroadcast(action: String, transcript: String) {
         sendBroadcast(
-            Intent(DictationTranscriptContract.ActionFinalTranscript).apply {
+            Intent(action).apply {
                 setPackage(packageName)
-                putExtra(DictationTranscriptContract.ExtraTranscript, clean)
+                putExtra(DictationTranscriptContract.ExtraTranscript, transcript)
             },
         )
     }

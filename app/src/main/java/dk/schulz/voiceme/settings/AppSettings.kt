@@ -13,6 +13,7 @@ data class AppSettings(
     val dictationInteraction: DictationInteraction,
     val offlineOnly: Boolean,
     val transcriptHistoryEnabled: Boolean,
+    val liveSentenceInsertionEnabled: Boolean,
     val hideInSensitiveFields: Boolean,
     val selectedModelId: String,
     val downloadedModelIds: Set<String>,
@@ -31,6 +32,7 @@ data class AppSettings(
             dictationInteraction = DictationInteraction.HoldToTalk,
             offlineOnly = true,
             transcriptHistoryEnabled = false,
+            liveSentenceInsertionEnabled = false,
             hideInSensitiveFields = true,
             selectedModelId = ModelCatalog.default().recommended.id,
             downloadedModelIds = emptySet(),
@@ -46,6 +48,7 @@ object AppSettingsCodec {
     private const val DictationInteractionKey = "dictationInteraction"
     private const val OfflineOnly = "offlineOnly"
     private const val TranscriptHistoryEnabled = "transcriptHistoryEnabled"
+    private const val LiveSentenceInsertionEnabled = "liveSentenceInsertionEnabled"
     private const val HideInSensitiveFields = "hideInSensitiveFields"
     private const val SelectedModelId = "selectedModelId"
     private const val DownloadedModelIds = "downloadedModelIds"
@@ -58,6 +61,7 @@ object AppSettingsCodec {
         DictationInteractionKey to settings.dictationInteraction.name,
         OfflineOnly to settings.offlineOnly.toString(),
         TranscriptHistoryEnabled to settings.transcriptHistoryEnabled.toString(),
+        LiveSentenceInsertionEnabled to settings.liveSentenceInsertionEnabled.toString(),
         HideInSensitiveFields to settings.hideInSensitiveFields.toString(),
         SelectedModelId to settings.selectedModelId,
         DownloadedModelIds to settings.downloadedModelIds.sorted().joinToString(","),
@@ -77,6 +81,8 @@ object AppSettingsCodec {
                 ?: defaults.offlineOnly,
             transcriptHistoryEnabled = values[TranscriptHistoryEnabled]?.toBooleanStrictOrNull()
                 ?: defaults.transcriptHistoryEnabled,
+            liveSentenceInsertionEnabled = values[LiveSentenceInsertionEnabled]?.toBooleanStrictOrNull()
+                ?: defaults.liveSentenceInsertionEnabled,
             hideInSensitiveFields = values[HideInSensitiveFields]?.toBooleanStrictOrNull()
                 ?: defaults.hideInSensitiveFields,
             selectedModelId = values[SelectedModelId]?.takeIf { it.isNotBlank() }
