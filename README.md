@@ -70,7 +70,7 @@ The current bootstrap also verifies a release APK can be assembled locally:
 ./gradlew assembleRelease
 ```
 
-Release signing can be configured with an ignored root-level `keystore.properties` copied from `keystore.properties.example`. Without that file, `assembleRelease` builds an unsigned artifact for local verification. See `docs/RELEASE.md` for the release gate, signing setup, and artifact checklist.
+Release signing can be configured with an ignored root-level `keystore.properties` copied from `keystore.properties.example`. Without that file, `assembleRelease` builds an unsigned artifact for local verification. See `docs/RELEASE.md` for the release gate, signing setup, and artifact checklist. Third-party dependency and model notices are tracked in `THIRD_PARTY_NOTICES.md`.
 
 ## License
 

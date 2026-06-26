@@ -299,9 +299,25 @@ private fun QuietTypeOnboardingScreen(
             }
             Button(
                 onClick = onNext,
+                enabled = canContinue,
                 modifier = Modifier.weight(1f),
             ) {
                 Text(step.primaryAction)
+            }
+        }
+        if (!canContinue && blockedReason != null) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = blockedReason,
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
         }
     }

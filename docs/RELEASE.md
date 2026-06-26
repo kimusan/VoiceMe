@@ -14,7 +14,7 @@ QuietType can build debug and release APK artifacts locally, but it is not ready
 
 Required before first public binary release:
 
-- Real streaming ASR runtime connected to the foreground microphone pipeline.
+- Real local ASR runtime connected to the foreground microphone pipeline for at least one prepared model.
 - Model archive extraction/preparation implemented and tested.
 - At least one downloaded model reaches `PreparedForDictation` only after runtime-required files are present and loadable.
 - End-to-end dictation test on a physical Android device: mic -> ASR partial/final transcript -> focused-field insertion.
@@ -41,7 +41,7 @@ Keep these tracked documents current:
 - `CHANGELOG.md` - user-facing release changes.
 - `SECURITY.md` - vulnerability reporting and supported versions.
 - `LICENSE` - project license.
-- `NOTICE` or third-party license inventory before first binary release.
+- `THIRD_PARTY_NOTICES.md` - third-party dependency/model license inventory before first binary release.
 - `fastlane/metadata/android/...` before F-Droid/Play submission.
 
 ## Local verification
@@ -64,7 +64,7 @@ Then manually verify:
 1. Onboarding explains microphone, accessibility, offline model download, and privacy behavior, and its action buttons open the relevant system/app flows.
 2. Microphone permission prompt appears only after user action.
 3. Foreground microphone notification appears while recording.
-4. After enabling QuietType in Android Accessibility settings, tapping the Status screen overlay test field shows the actual draggable floating mic; password/sensitive fields remain blocked.
+4. After enabling QuietType in Android Accessibility settings, tapping the Settings overlay test field shows the actual draggable floating mic; password/sensitive fields remain blocked.
 5. Password/sensitive fields are blocked by default.
 6. Model download is explicit, HTTPS-only, SHA-256 verified, and stored under app-private storage.
 7. Downloaded archive state is not presented as ASR-ready until runtime preparation succeeds.

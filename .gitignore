@@ -23,3 +23,5 @@ release.properties
 *.aab
 *.apks
 *.idsig
+FDROID_RELEASE_GUIDE.md
+GOOGLE_PLAY_RELEASE_GUIDE.md
