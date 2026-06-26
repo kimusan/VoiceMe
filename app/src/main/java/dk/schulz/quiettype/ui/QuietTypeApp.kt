@@ -503,8 +503,8 @@ private fun QuietTypeSettingsPreview(
             },
         )
         SettingSwitchCard(
-            title = "Offline-only mode",
-            body = "Keep QuietType from using network features except explicit future model-download flows.",
+            title = "Offline dictation only",
+            body = "Dictation stays on this device. Explicit model downloads can still use HTTPS when you tap Download on the Models screen.",
             checked = appSettings.offlineOnly,
             onCheckedChange = { enabled ->
                 onSettingsChange(appSettings.copy(offlineOnly = enabled))
@@ -615,7 +615,7 @@ private fun QuietTypeModelsScreen(
             style = MaterialTheme.typography.headlineMedium,
         )
         Text(
-            text = "This screen starts explicit HTTPS model downloads, verifies SHA-256 before storing downloaded archives, and deletes private model files on request. Downloaded archives are not dictation-ready until runtime preparation succeeds.",
+            text = "Downloads only start when you tap Download. QuietType uses HTTPS to fetch the selected model archive, verifies SHA-256 before storing it, and then keeps dictation on-device. Downloaded archives are not dictation-ready until runtime preparation succeeds.",
             style = MaterialTheme.typography.bodyLarge,
         )
         modelDownloadStatus?.let { status ->

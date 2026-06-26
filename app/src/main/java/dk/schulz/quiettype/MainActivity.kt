@@ -22,6 +22,8 @@ import dk.schulz.quiettype.models.ModelArtifactInstallResult
 import dk.schulz.quiettype.models.ModelArtifactInstaller
 import dk.schulz.quiettype.models.ModelCatalogReducer
 import dk.schulz.quiettype.models.ModelCatalogState
+import dk.schulz.quiettype.models.ModelDownloadDecision
+import dk.schulz.quiettype.models.ModelDownloadPolicy
 import dk.schulz.quiettype.models.ModelDownloadProgress
 import dk.schulz.quiettype.models.ModelInstallState
 import dk.schulz.quiettype.settings.AppSettings
@@ -170,14 +172,20 @@ class MainActivity : ComponentActivity() {
         onSettingsReady: (AppSettings) -> Unit,
     ) {
         val model = modelCatalogState().catalog.modelById(modelId) ?: return
-        if (activeModelDownloadId != null) {
-            modelDownloadStatus = "A model download is already running. Wait for it to finish before starting another."
-            return
-        }
-        if (!model.isOfflineCapable || model.runtime.requiredFiles.isEmpty()) {
-            modelDownloadStatus = "${model.name} is a benchmark/reference entry and is not downloadable in the app yet. Choose a mobile-ready model instead."
-            modelDownloadProgress = null
-            return
+        when (
+            val decision = ModelDownloadPolicy.canDownload(
+                model = model,
+                offlineOnly = appSettings.offlineOnly,
+                userInitiated = true,
+                activeDownloadId = activeModelDownloadId,
+            )
+        ) {
+            ModelDownloadDecision.Allowed -> Unit
+            is ModelDownloadDecision.Blocked -> {
+                modelDownloadStatus = decision.reason
+                modelDownloadProgress = null
+                return
+            }
         }
         activeModelDownloadId = model.id
         modelDownloadStatus = "Starting download for ${model.name}…"
