@@ -224,6 +224,8 @@ class QuietTypeRecordingService : Service() {
             return emptyList()
         }
         val chunks = mutableListOf<FloatArray>()
+        var capturedSamples = 0
+        val maxSamples = RecordingBufferPolicy.maxSamples()
         recorder = audioRecord
         try {
             val shortBuffer = ShortArray(minBufferSize / 2)
@@ -232,7 +234,23 @@ class QuietTypeRecordingService : Service() {
             while (keepRecording.get()) {
                 val read = audioRecord.read(shortBuffer, 0, shortBuffer.size)
                 if (read <= 0) continue
-                chunks += FloatArray(read) { index -> shortBuffer[index] / Short.MAX_VALUE.toFloat() }
+                val samplesToKeep = RecordingBufferPolicy.samplesToKeep(
+                    currentSamples = capturedSamples,
+                    nextSamples = read,
+                    maxSamples = maxSamples,
+                )
+                if (!RecordingBufferPolicy.shouldAcceptMoreSamples(capturedSamples, samplesToKeep, maxSamples)) {
+                    notifyStatus("QuietType reached the ${RecordingBufferPolicy.DefaultMaxOfflineDurationSeconds}-second offline dictation limit. Processing locally.")
+                    keepRecording.set(false)
+                    break
+                }
+                chunks += FloatArray(samplesToKeep) { index -> shortBuffer[index] / Short.MAX_VALUE.toFloat() }
+                capturedSamples += samplesToKeep
+                if (capturedSamples >= maxSamples) {
+                    notifyStatus("QuietType reached the ${RecordingBufferPolicy.DefaultMaxOfflineDurationSeconds}-second offline dictation limit. Processing locally.")
+                    keepRecording.set(false)
+                    break
+                }
             }
         } finally {
             runCatching { audioRecord.stop() }
