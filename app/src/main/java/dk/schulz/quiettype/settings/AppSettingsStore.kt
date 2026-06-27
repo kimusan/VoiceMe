@@ -18,6 +18,8 @@ class AppSettingsStore(
             OfflineOnly to preferences.getString(OfflineOnly, null).orEmpty(),
             TranscriptHistoryEnabled to preferences.getString(TranscriptHistoryEnabled, null).orEmpty(),
             LiveSentenceInsertionEnabled to preferences.getString(LiveSentenceInsertionEnabled, null).orEmpty(),
+            CorrectionModelEnabled to preferences.getString(CorrectionModelEnabled, null).orEmpty(),
+            SelectedCorrectionModelId to preferences.getString(SelectedCorrectionModelId, null).orEmpty(),
             HideInSensitiveFields to preferences.getString(HideInSensitiveFields, null).orEmpty(),
             SelectedModelId to preferences.getString(SelectedModelId, null).orEmpty(),
             SelectedLanguageProfileId to preferences.getString(SelectedLanguageProfileId, null).orEmpty(),
@@ -45,6 +47,8 @@ class AppSettingsStore(
         private const val OfflineOnly = "offlineOnly"
         private const val TranscriptHistoryEnabled = "transcriptHistoryEnabled"
         private const val LiveSentenceInsertionEnabled = "liveSentenceInsertionEnabled"
+        private const val CorrectionModelEnabled = "correctionModelEnabled"
+        private const val SelectedCorrectionModelId = "selectedCorrectionModelId"
         private const val HideInSensitiveFields = "hideInSensitiveFields"
         private const val SelectedModelId = "selectedModelId"
         private const val SelectedLanguageProfileId = "selectedLanguageProfileId"

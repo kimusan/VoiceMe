@@ -310,7 +310,12 @@ class QuietTypeAccessibilityService : AccessibilityService() {
                     }
                     focusedNode.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selectionArguments)
                 }
-                showToast("Corrected focused text.")
+                val settings = settingsStore.load()
+                if (settings.correctionModelEnabled) {
+                    showToast("Correction model runtime is not wired yet; used built-in cleanup.")
+                } else {
+                    showToast("Corrected focused text.")
+                }
             } else {
                 showToast("This field does not accept accessibility text correction.")
             }

@@ -97,12 +97,24 @@ class MainActivity : ComponentActivity() {
                 },
                 onSelectLanguageProfile = { profileId ->
                     modelCatalogState().catalog.profileById(profileId)?.let { profile ->
-                        saveSettings(
-                            appSettings.copy(
-                                selectedLanguageProfileId = profile.id,
-                                selectedModelId = profile.defaultModelId,
-                            ),
+                        if (profile.isCustom || profile.defaultModelId == null) {
+                            saveSettings(appSettings.copy(selectedLanguageProfileId = profile.id))
+                            return@let
+                        }
+                        val updatedSettings = appSettings.copy(
+                            selectedLanguageProfileId = profile.id,
+                            selectedModelId = profile.defaultModelId,
                         )
+                        saveSettings(updatedSettings)
+                        if (
+                            !updatedSettings.downloadedModelIds.contains(profile.defaultModelId) &&
+                            !updatedSettings.preparedModelIds.contains(profile.defaultModelId)
+                        ) {
+                            startModelDownload(
+                                modelId = profile.defaultModelId,
+                                onSettingsReady = ::saveSettings,
+                            )
+                        }
                     }
                 },
                 onDownloadModel = { modelId ->

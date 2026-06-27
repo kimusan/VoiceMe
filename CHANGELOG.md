@@ -18,8 +18,8 @@ The format follows Keep a Changelog principles, and versions should follow seman
 
 ### Added
 
-- Active-field quick correction from the floating overlay: cleans selected text, or the whole focused field when nothing is selected, using local spacing/case/punctuation cleanup.
-- Model/language profiles on the Models screen for Danish/multilingual, compact multilingual, and English low-latency workflows; selecting a profile switches to its recommended local ASR model.
+- Active-field quick correction from the floating overlay: cleans selected text, or the whole focused field when nothing is selected. A separate Settings section now lets users choose a future local correction model while built-in cleanup remains the current fallback.
+- Compact model/language profiles on the Models screen for Danish/multilingual, compact multilingual, English low-latency, and Custom workflows; selecting a non-custom profile switches to and starts downloading its recommended local ASR model when needed.
 - Optional local-only dictation history with an off-by-default setting, History screen, copy/delete/clear controls, and final-transcript-only recording after successful insertion.
 - Initial product, architecture, privacy, permissions, UX, and release planning documents.
 - Android/Kotlin project bootstrap with Gradle wrapper, Compose Material 3 app shell, dynamic color theme, debug/release build configuration, and a unit test.
@@ -34,7 +34,7 @@ The format follows Keep a Changelog principles, and versions should follow seman
 - Final transcript insertion that appends recognized on-device dictation text through accessibility `ACTION_SET_TEXT` when a local dictation session stops.
 - HTTPS model artifact download plumbing with SHA-256 verification, private model-file storage, progress bar/percentage text, and deletion semantics before a model archive is marked downloaded.
 - Switched the default catalog candidate to sherpa-onnx Parakeet TDT v3 int8 with Danish/multilingual support, a real GitHub release URL, and SHA-256 checksum.
-- Kept Parakeet v2 int8, compact streaming English, and compact CTC models as fallback/benchmark candidates; fp32 Parakeet is listed as a mobile-unfriendly benchmark only.
+- Kept Parakeet v2 int8, compact streaming English, compact CTC, and Whisper.cpp tiny/base GGML entries as fallback/custom candidates; Whisper entries are downloadable for runtime planning while whisper.cpp Android acceleration integration is still tracked before release.
 - Separate downloaded-archive and prepared-for-dictation model states; verified sherpa `.tar.bz2` archives are unpacked into private runtime files and marked prepared when all runtime-required files are present.
 - Release signing template and release-gate checklist for reproducible signed APK builds without committing keystores.
 - Action-based onboarding buttons for Accessibility settings, microphone permission, and model setup, with “already enabled/allowed/ready” labels when setup is complete.

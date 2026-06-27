@@ -46,8 +46,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import dk.schulz.quiettype.R
-import dk.schulz.quiettype.dictation.DictationBlockReason
 import dk.schulz.quiettype.accessibility.QuietTypeAccessibilityPresentation
+import dk.schulz.quiettype.correction.CorrectionModelCatalog
+import dk.schulz.quiettype.dictation.DictationBlockReason
 import dk.schulz.quiettype.dictation.DictationSessionState
 import dk.schulz.quiettype.history.DictationHistoryEntry
 import dk.schulz.quiettype.models.LanguageProfile
@@ -545,6 +546,29 @@ private fun QuietTypeSettingsPreview(
                 onSettingsChange(appSettings.copy(liveSentenceInsertionEnabled = enabled))
             },
         )
+        SettingsSectionCard(title = "Fix text model") {
+            SettingSwitchRow(
+                title = "Use local correction model",
+                body = "When enabled, Fix will use the selected on-device cleanup model once its runtime is available. Built-in cleanup remains the fallback.",
+                checked = appSettings.correctionModelEnabled,
+                onCheckedChange = { enabled ->
+                    onSettingsChange(appSettings.copy(correctionModelEnabled = enabled))
+                },
+            )
+            CorrectionModelCatalog.default().models.forEach { model ->
+                FilterChip(
+                    selected = appSettings.selectedCorrectionModelId == model.id,
+                    onClick = { onSettingsChange(appSettings.copy(selectedCorrectionModelId = model.id)) },
+                    label = { Text("${model.name} · ~${model.sizeMegabytes} MB") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    text = model.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         SettingSwitchCard(
             title = "Save local dictation history",
             body = "Off by default. When enabled, successful final dictations are saved only in private app storage so you can copy or delete them from History.",
@@ -687,19 +711,22 @@ private fun QuietTypeModelsScreen(
             style = MaterialTheme.typography.headlineMedium,
         )
         Text(
-            text = "Downloads only start when you tap Download. QuietType uses HTTPS to fetch the selected model archive, verifies SHA-256 before storing it, and then keeps dictation on-device. Downloaded archives are not dictation-ready until runtime preparation succeeds.",
+            text = "Pick a profile to select and download its recommended speech model. Choose Custom to manage every model manually.",
             style = MaterialTheme.typography.bodyLarge,
         )
         SettingsSectionCard(title = "Language profile") {
-            Text(
-                text = "Pick the profile that best matches what you dictate. This switches to the recommended local model for that language mix; you can still choose another model below.",
-                style = MaterialTheme.typography.bodyMedium,
-            )
             modelCatalogState.catalog.languageProfiles.forEach { profile ->
+                val recommendedModel = profile.defaultModelId?.let { modelCatalogState.catalog.modelById(it) }
+                val selected = profile.id == modelCatalogState.selectedLanguageProfile.id
                 LanguageProfileRow(
                     profile = profile,
-                    selected = profile.id == modelCatalogState.selectedLanguageProfile.id,
-                    recommendedModelName = modelCatalogState.catalog.modelById(profile.defaultModelId)?.name.orEmpty(),
+                    selected = selected,
+                    recommendedModelName = recommendedModel?.name ?: "Manual selection",
+                    installLabel = recommendedModel?.let { model ->
+                        val downloaded = modelCatalogState.downloadedModelIds.contains(model.id)
+                        val prepared = modelCatalogState.preparedModelIds.contains(model.id)
+                        model.statusLabel(downloaded = downloaded, prepared = prepared, downloadable = model.isOfflineCapable)
+                    } ?: "shows full list",
                     enabled = !isModelDownloadActive,
                     onSelect = { onSelectLanguageProfile(profile.id) },
                 )
@@ -732,88 +759,98 @@ private fun QuietTypeModelsScreen(
                 )
             }
         }
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            modelCatalogState.catalog.models.forEach { model ->
-                val selected = model.id == modelCatalogState.selectedModel.id
-                val downloaded = modelCatalogState.downloadedModelIds.contains(model.id)
-                val prepared = modelCatalogState.preparedModelIds.contains(model.id)
-                val downloadable = model.isOfflineCapable && model.runtime.requiredFiles.isNotEmpty()
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (selected) {
-                            MaterialTheme.colorScheme.primaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant
-                        },
-                    ),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        Text(
-                            text = model.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            text = model.description,
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        Text(
-                            text = "${model.engine} · ${model.language} · ~${model.sizeMegabytes} MB · ${model.license}",
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            if (selected) StatusChip("Selected")
-                            StatusChip(model.statusLabel(downloaded = downloaded, prepared = prepared, downloadable = downloadable))
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            OutlinedButton(
-                                onClick = { onSelectModel(model.id) },
-                                enabled = !selected && !isModelDownloadActive,
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Text(if (selected) "Selected" else "Select")
-                            }
-                            if (downloaded) {
-                                OutlinedButton(
-                                    onClick = { modelPendingDelete = model },
-                                    enabled = !isModelDownloadActive,
-                                    modifier = Modifier.weight(1f),
-                                ) { Text("Delete") }
+        if (modelCatalogState.isCustomModelSelection) {
+            Text(
+                text = "Custom speech models",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                modelCatalogState.catalog.models.forEach { model ->
+                    val selected = model.id == modelCatalogState.selectedModel.id
+                    val downloaded = modelCatalogState.downloadedModelIds.contains(model.id)
+                    val prepared = modelCatalogState.preparedModelIds.contains(model.id)
+                    val downloadable = model.isOfflineCapable && model.runtime.requiredFiles.isNotEmpty()
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (selected) {
+                                MaterialTheme.colorScheme.primaryContainer
                             } else {
-                                Button(
-                                    onClick = { onDownloadModel(model.id) },
-                                    enabled = !isModelDownloadActive && downloadable,
+                                MaterialTheme.colorScheme.surfaceVariant
+                            },
+                        ),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(
+                                text = model.name,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                text = model.description,
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            Text(
+                                text = "${model.engine} · ${model.language} · ~${model.sizeMegabytes} MB",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                if (selected) StatusChip("Selected")
+                                StatusChip(model.statusLabel(downloaded = downloaded, prepared = prepared, downloadable = downloadable))
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                OutlinedButton(
+                                    onClick = { onSelectModel(model.id) },
+                                    enabled = !selected && !isModelDownloadActive,
                                     modifier = Modifier.weight(1f),
                                 ) {
-                                    Text(
-                                        when {
-                                            isModelDownloadActive -> "Busy"
-                                            downloadable -> "Download"
-                                            else -> "Unavailable"
-                                        },
-                                    )
+                                    Text(if (selected) "Selected" else "Select")
+                                }
+                                if (downloaded) {
+                                    OutlinedButton(
+                                        onClick = { modelPendingDelete = model },
+                                        enabled = !isModelDownloadActive,
+                                        modifier = Modifier.weight(1f),
+                                    ) { Text("Delete") }
+                                } else {
+                                    Button(
+                                        onClick = { onDownloadModel(model.id) },
+                                        enabled = !isModelDownloadActive && downloadable,
+                                        modifier = Modifier.weight(1f),
+                                    ) {
+                                        Text(
+                                            when {
+                                                isModelDownloadActive -> "Busy"
+                                                downloadable -> "Download"
+                                                else -> "Unavailable"
+                                            },
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
+        } else {
+            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }
@@ -823,6 +860,7 @@ private fun LanguageProfileRow(
     profile: LanguageProfile,
     selected: Boolean,
     recommendedModelName: String,
+    installLabel: String,
     enabled: Boolean,
     onSelect: () -> Unit,
 ) {
@@ -860,6 +898,11 @@ private fun LanguageProfileRow(
                     text = "Recommended: $recommendedModelName",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = installLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             if (selected) {
@@ -972,6 +1015,43 @@ private fun QuietTypeOverlayTestField(
         text = microphoneStatusText(dictationState),
         style = MaterialTheme.typography.bodySmall,
     )
+}
+
+@Composable
+private fun SettingSwitchRow(
+    title: String,
+    body: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Switch) { onCheckedChange(!checked) },
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = body,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+        )
+    }
 }
 
 @Composable

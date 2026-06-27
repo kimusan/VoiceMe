@@ -17,7 +17,7 @@ object QuietTypeAccessibilityPresentation {
     }
 
     fun overlayLabel(state: OverlayDictationState): String = when (state) {
-        OverlayDictationState.Idle -> "🎙 QuietType"
+        OverlayDictationState.Idle -> "🎙"
         OverlayDictationState.Listening -> "● Listening"
         OverlayDictationState.Processing -> "⏳ Thinking"
     }

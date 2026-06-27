@@ -22,6 +22,7 @@ enum class ModelRuntimeKind {
     SherpaOnnxOfflineTransducer,
     SherpaOnnxOfflineCtc,
     SherpaOnnxStreamingTransducer,
+    WhisperCpp,
     UnsupportedMobileBenchmark,
 }
 
@@ -30,7 +31,8 @@ data class LanguageProfile(
     val displayName: String,
     val description: String,
     val preferredLanguageTags: List<String>,
-    val defaultModelId: String,
+    val defaultModelId: String?,
+    val isCustom: Boolean = false,
 )
 
 data class ModelCatalog(
@@ -50,23 +52,31 @@ data class ModelCatalog(
                 LanguageProfile(
                     id = "da-multilingual",
                     displayName = "Danish + multilingual",
-                    description = "Best default for Danish dictation and mixed European-language notes. Uses the multilingual Parakeet model.",
+                    description = "Best default for Danish and mixed European-language dictation.",
                     preferredLanguageTags = listOf("da", "en", "de", "sv", "no"),
                     defaultModelId = "sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8",
                 ),
                 LanguageProfile(
                     id = "en-fast",
                     displayName = "English low latency",
-                    description = "Small streaming English profile for faster experiments and lower-latency correction workflows.",
+                    description = "Small streaming English profile for faster experiments.",
                     preferredLanguageTags = listOf("en"),
                     defaultModelId = "sherpa-onnx-streaming-zipformer-en-int8",
                 ),
                 LanguageProfile(
                     id = "compact-multilingual",
                     displayName = "Compact multilingual",
-                    description = "Smaller multilingual fallback when storage or download size matters more than Danish-first quality.",
+                    description = "Smaller multilingual fallback when size matters more than Danish-first quality.",
                     preferredLanguageTags = listOf("en", "de", "fr", "es", "it", "pl", "uk"),
                     defaultModelId = "sherpa-onnx-nemo-fast-conformer-ctc-multilingual-int8",
+                ),
+                LanguageProfile(
+                    id = "custom",
+                    displayName = "Custom",
+                    description = "Show all speech models and choose manually.",
+                    preferredLanguageTags = emptyList(),
+                    defaultModelId = null,
+                    isCustom = true,
                 ),
             ),
             models = listOf(
@@ -150,6 +160,46 @@ data class ModelCatalog(
                         requiredFiles = listOf("encoder-epoch-99-avg-1.onnx", "decoder-epoch-99-avg-1.onnx", "joiner-epoch-99-avg-1.onnx", "tokens.txt"),
                     ),
                 ),
+                VoiceModel(
+                    id = "whisper-cpp-ggml-tiny",
+                    name = "Whisper tiny multilingual",
+                    description = "Whisper.cpp tiny GGML model. Small multilingual option; planned for accelerated Android decoding with whisper.cpp OpenCL/GPU paths where available and CPU fallback elsewhere.",
+                    engine = "whisper.cpp / ggml tiny",
+                    language = "Multilingual",
+                    sizeMegabytes = 75,
+                    license = "MIT runtime; OpenAI Whisper model license/terms require release NOTICE review",
+                    artifact = ModelArtifact(
+                        url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin",
+                        sha256 = "518970a29bedb265f23ac48d486ddbc63bedffd90967b10140ae5ac61243acf3",
+                        fileName = "ggml-tiny.bin",
+                        licenseUrl = "https://huggingface.co/ggerganov/whisper.cpp",
+                    ),
+                    isOfflineCapable = true,
+                    runtime = ModelRuntime(
+                        kind = ModelRuntimeKind.WhisperCpp,
+                        requiredFiles = listOf("ggml-tiny.bin"),
+                    ),
+                ),
+                VoiceModel(
+                    id = "whisper-cpp-ggml-base",
+                    name = "Whisper base multilingual",
+                    description = "Whisper.cpp base GGML model. Better accuracy than tiny; planned for Android hardware acceleration via whisper.cpp OpenCL where available, with NNAPI/GPU delegate investigation tracked before release.",
+                    engine = "whisper.cpp / ggml base",
+                    language = "Multilingual",
+                    sizeMegabytes = 142,
+                    license = "MIT runtime; OpenAI Whisper model license/terms require release NOTICE review",
+                    artifact = ModelArtifact(
+                        url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin",
+                        sha256 = "2f62d18b50c3f3feafbf990eec23a93d319660b1efbdd3fff55e52b7cde2e374",
+                        fileName = "ggml-base.bin",
+                        licenseUrl = "https://huggingface.co/ggerganov/whisper.cpp",
+                    ),
+                    isOfflineCapable = true,
+                    runtime = ModelRuntime(
+                        kind = ModelRuntimeKind.WhisperCpp,
+                        requiredFiles = listOf("ggml-base.bin"),
+                    ),
+                ),
             ),
         )
     }
@@ -170,6 +220,7 @@ data class ModelCatalogState(
 ) {
     val selectedModel: VoiceModel = catalog.modelById(selectedModelId) ?: catalog.recommended
     val selectedLanguageProfile: LanguageProfile = catalog.profileById(selectedLanguageProfileId) ?: catalog.defaultProfile
+    val isCustomModelSelection: Boolean = selectedLanguageProfile.isCustom
     val selectedInstallState: ModelInstallState = when {
         preparedModelIds.contains(selectedModel.id) -> ModelInstallState.PreparedForDictation
         downloadedModelIds.contains(selectedModel.id) -> ModelInstallState.DownloadedArchive
@@ -185,6 +236,9 @@ data class ModelCatalogState(
 
     fun selectLanguageProfile(profileId: String): ModelCatalogState {
         val profile = catalog.profileById(profileId) ?: return this
+        if (profile.isCustom || profile.defaultModelId == null) {
+            return copy(selectedLanguageProfileId = profile.id)
+        }
         return copy(
             selectedLanguageProfileId = profile.id,
             selectedModelId = profile.defaultModelId,
@@ -195,7 +249,7 @@ data class ModelCatalogState(
         fun default(): ModelCatalogState {
             val catalog = ModelCatalog.default()
             return ModelCatalogState(
-                selectedModelId = catalog.defaultProfile.defaultModelId,
+                selectedModelId = catalog.defaultProfile.defaultModelId ?: catalog.recommended.id,
                 selectedLanguageProfileId = catalog.defaultProfile.id,
                 downloadedModelIds = emptySet(),
                 preparedModelIds = emptySet(),

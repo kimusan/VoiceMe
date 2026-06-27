@@ -95,7 +95,7 @@ Reasons:
 
 - Parakeet ONNX/sherpa-onnx model packs for high accuracy on capable devices.
   - Treat as optional because Parakeet 0.6B-class exports are large and memory-heavy.
-- whisper.cpp for broad offline model availability and multilingual batch/alternate mode.
+- whisper.cpp for broad offline model availability and multilingual batch/alternate mode. Tiny/base GGML models are listed as Custom downloads; dictation readiness requires a dedicated Android whisper.cpp runtime path with OpenCL/GPU acceleration investigation and CPU fallback.
 - Vosk as a small low-end-device fallback if accuracy is acceptable.
 
 ## UI stack
@@ -115,7 +115,7 @@ A practical first implementation can start as a single Android app module, then 
 - `:app` - activities, onboarding, settings, Android services.
 - `:core-dictation` - ASR interfaces, transcript session state, insertion abstractions.
 - `:engine-sherpa` - sherpa-onnx runtime integration.
-- `:model-catalog` - model metadata, checksums, download policy.
+- `:model-catalog` - speech and correction model metadata, checksums, profile defaults, and download policy.
 
 ## Validation targets
 

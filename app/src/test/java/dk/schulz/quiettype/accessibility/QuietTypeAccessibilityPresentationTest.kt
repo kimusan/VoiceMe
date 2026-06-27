@@ -23,7 +23,7 @@ class QuietTypeAccessibilityPresentationTest {
     @Test
     fun overlayLabelShowsOnlyDictationStateWithoutAppOrFieldName() {
         assertEquals(
-            "🎙 QuietType",
+            "🎙",
             QuietTypeAccessibilityPresentation.overlayLabel(state = OverlayDictationState.Idle),
         )
         assertEquals(

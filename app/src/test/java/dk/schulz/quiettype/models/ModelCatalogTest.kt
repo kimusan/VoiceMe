@@ -66,8 +66,11 @@ class ModelCatalogTest {
         assertEquals("da-multilingual", catalog.defaultProfile.id)
         assertTrue(catalog.defaultProfile.displayName.contains("Danish", ignoreCase = true))
         assertTrue(catalog.defaultProfile.preferredLanguageTags.contains("da"))
-        assertTrue(catalog.languageProfiles.size >= 3)
-        assertTrue(catalog.languageProfiles.all { profile -> catalog.modelById(profile.defaultModelId) != null })
+        assertEquals(listOf("da-multilingual", "en-fast", "compact-multilingual", "custom"), catalog.languageProfiles.map { it.id })
+        assertTrue(catalog.languageProfiles.filterNot { it.isCustom }.all { profile ->
+            profile.defaultModelId != null && catalog.modelById(profile.defaultModelId) != null
+        })
+        assertTrue(catalog.languageProfiles.single { it.id == "custom" }.isCustom)
     }
 
     @Test
@@ -86,6 +89,30 @@ class ModelCatalogTest {
         val state = ModelCatalogState.default()
 
         assertEquals(state, state.selectLanguageProfile("missing-profile"))
+    }
+
+    @Test
+    fun customLanguageProfileRevealsManualModelListWithoutChangingSelectedModel() {
+        val state = ModelCatalogState.default().selectModel("sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8")
+
+        val updated = state.selectLanguageProfile("custom")
+
+        assertEquals("custom", updated.selectedLanguageProfileId)
+        assertEquals("sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8", updated.selectedModelId)
+        assertTrue(updated.isCustomModelSelection)
+    }
+
+    @Test
+    fun catalogIncludesWhisperCppTinyAndBaseSpeechModels() {
+        val catalog = ModelCatalog.default()
+        val whisperTiny = catalog.modelById("whisper-cpp-ggml-tiny") ?: error("missing whisper tiny")
+        val whisperBase = catalog.modelById("whisper-cpp-ggml-base") ?: error("missing whisper base")
+
+        assertEquals(ModelRuntimeKind.WhisperCpp, whisperTiny.runtime.kind)
+        assertEquals(listOf("ggml-tiny.bin"), whisperTiny.runtime.requiredFiles)
+        assertEquals(ModelRuntimeKind.WhisperCpp, whisperBase.runtime.kind)
+        assertTrue(whisperTiny.description.contains("OpenCL", ignoreCase = true))
+        assertTrue(whisperBase.description.contains("NNAPI", ignoreCase = true))
     }
 
 }

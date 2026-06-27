@@ -14,12 +14,12 @@ QuietType can build debug and release APK artifacts locally, but it is not ready
 
 Required before first public binary release:
 
-- Real local ASR runtime connected to the foreground microphone pipeline for at least one prepared model.
+- Real local ASR runtime connected to the foreground microphone pipeline for at least one prepared model; any Whisper model exposed as dictation-ready must have verified Android whisper.cpp runtime support and documented acceleration/fallback behavior.
 - Model archive extraction/preparation implemented and tested.
 - At least one downloaded model reaches `PreparedForDictation` only after runtime-required files are present and loadable.
 - End-to-end dictation test on a physical Android device: mic -> ASR partial/final transcript -> focused-field insertion.
 - Manual accessibility-insertion matrix across common target apps/editors.
-- Third-party license inventory/NOTICE for Android dependencies, sherpa-onnx runtime, and downloadable model artifacts.
+- Third-party license inventory/NOTICE for Android dependencies, sherpa-onnx runtime, correction-model candidates, Whisper, and downloadable model artifacts.
 - Signed release artifact built from a clean git tag.
 
 ## Release channels
@@ -69,8 +69,8 @@ Then manually verify:
 6. Model download is explicit, HTTPS-only, SHA-256 verified, and stored under app-private storage.
 7. Downloaded archive state is not presented as ASR-ready until runtime preparation succeeds.
 8. Dictation history is off by default; when enabled, successful final dictations appear in History and copy/delete/clear controls work.
-9. Model/language profile switching selects the documented recommended model and does not mark a model ready until download/preparation succeeds.
-10. Quick correction from the floating overlay cleans the currently focused input field: selected text is corrected when selected; otherwise the whole field is corrected. Sensitive fields remain blocked.
+9. Model/language profile switching selects the documented recommended model, starts a missing recommended download after the user selects the profile, and does not mark a model ready until download/preparation succeeds. Custom reveals the full model list.
+10. Quick correction from the floating overlay cleans the currently focused input field: selected text is corrected when selected; otherwise the whole field is corrected. Sensitive fields remain blocked. Correction-model settings must not claim SmolLM/LLM correction is active before the local runtime is wired.
 
 ## Signing
 

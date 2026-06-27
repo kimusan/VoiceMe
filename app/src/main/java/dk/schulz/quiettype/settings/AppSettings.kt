@@ -3,6 +3,7 @@ package dk.schulz.quiettype.settings
 import dk.schulz.quiettype.accessibility.HiddenFieldTarget
 import dk.schulz.quiettype.accessibility.HiddenFieldTargetScope
 import dk.schulz.quiettype.accessibility.OverlayPlacementPolicy
+import dk.schulz.quiettype.correction.CorrectionModelCatalog
 import dk.schulz.quiettype.models.ModelCatalog
 
 enum class DictationInteraction {
@@ -24,6 +25,8 @@ data class AppSettings(
     val offlineOnly: Boolean,
     val transcriptHistoryEnabled: Boolean,
     val liveSentenceInsertionEnabled: Boolean,
+    val correctionModelEnabled: Boolean,
+    val selectedCorrectionModelId: String,
     val hideInSensitiveFields: Boolean,
     val selectedModelId: String,
     val selectedLanguageProfileId: String,
@@ -46,8 +49,10 @@ data class AppSettings(
             offlineOnly = true,
             transcriptHistoryEnabled = false,
             liveSentenceInsertionEnabled = false,
+            correctionModelEnabled = false,
+            selectedCorrectionModelId = CorrectionModelCatalog.default().defaultModel.id,
             hideInSensitiveFields = true,
-            selectedModelId = ModelCatalog.default().defaultProfile.defaultModelId,
+            selectedModelId = ModelCatalog.default().defaultProfile.defaultModelId ?: ModelCatalog.default().recommended.id,
             selectedLanguageProfileId = ModelCatalog.default().defaultProfile.id,
             downloadedModelIds = emptySet(),
             preparedModelIds = emptySet(),
@@ -65,6 +70,8 @@ object AppSettingsCodec {
     private const val OfflineOnly = "offlineOnly"
     private const val TranscriptHistoryEnabled = "transcriptHistoryEnabled"
     private const val LiveSentenceInsertionEnabled = "liveSentenceInsertionEnabled"
+    private const val CorrectionModelEnabled = "correctionModelEnabled"
+    private const val SelectedCorrectionModelId = "selectedCorrectionModelId"
     private const val HideInSensitiveFields = "hideInSensitiveFields"
     private const val SelectedModelId = "selectedModelId"
     private const val SelectedLanguageProfileId = "selectedLanguageProfileId"
@@ -81,6 +88,8 @@ object AppSettingsCodec {
         OfflineOnly to settings.offlineOnly.toString(),
         TranscriptHistoryEnabled to settings.transcriptHistoryEnabled.toString(),
         LiveSentenceInsertionEnabled to settings.liveSentenceInsertionEnabled.toString(),
+        CorrectionModelEnabled to settings.correctionModelEnabled.toString(),
+        SelectedCorrectionModelId to settings.selectedCorrectionModelId,
         HideInSensitiveFields to settings.hideInSensitiveFields.toString(),
         SelectedModelId to settings.selectedModelId,
         SelectedLanguageProfileId to settings.selectedLanguageProfileId,
@@ -105,6 +114,11 @@ object AppSettingsCodec {
                 ?: defaults.transcriptHistoryEnabled,
             liveSentenceInsertionEnabled = values[LiveSentenceInsertionEnabled]?.toBooleanStrictOrNull()
                 ?: defaults.liveSentenceInsertionEnabled,
+            correctionModelEnabled = values[CorrectionModelEnabled]?.toBooleanStrictOrNull()
+                ?: defaults.correctionModelEnabled,
+            selectedCorrectionModelId = values[SelectedCorrectionModelId]
+                ?.takeIf { CorrectionModelCatalog.default().modelById(it) != null }
+                ?: defaults.selectedCorrectionModelId,
             hideInSensitiveFields = values[HideInSensitiveFields]?.toBooleanStrictOrNull()
                 ?: defaults.hideInSensitiveFields,
             selectedModelId = values[SelectedModelId]?.takeIf { it.isNotBlank() }

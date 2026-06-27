@@ -16,6 +16,8 @@ class AppSettingsTest {
         assertTrue(settings.offlineOnly)
         assertFalse(settings.transcriptHistoryEnabled)
         assertFalse(settings.liveSentenceInsertionEnabled)
+        assertFalse(settings.correctionModelEnabled)
+        assertEquals("deterministic-cleanup", settings.selectedCorrectionModelId)
         assertTrue(settings.hideInSensitiveFields)
         assertEquals("da-multilingual", settings.selectedLanguageProfileId)
         assertEquals(16, settings.overlayOffsetXDp)
@@ -41,6 +43,8 @@ class AppSettingsTest {
             offlineOnly = true,
             transcriptHistoryEnabled = false,
             liveSentenceInsertionEnabled = true,
+            correctionModelEnabled = true,
+            selectedCorrectionModelId = "smollm2-360m-instruct-q4",
             hideInSensitiveFields = true,
             selectedModelId = AppSettings.default().selectedModelId,
             selectedLanguageProfileId = "en-fast",
