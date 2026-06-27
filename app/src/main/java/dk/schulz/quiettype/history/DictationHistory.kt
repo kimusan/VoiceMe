@@ -25,6 +25,7 @@ object DictationHistoryPolicy {
 
     fun deleteEntry(existing: List<DictationHistoryEntry>, entryId: String): List<DictationHistoryEntry> =
         existing.filterNot { it.id == entryId }
+
 }
 
 object DictationHistoryCodec {
@@ -121,6 +122,7 @@ class DictationHistoryStore(context: Context) {
     fun delete(entryId: String) {
         save(DictationHistoryPolicy.deleteEntry(load(), entryId))
     }
+
 
     fun clear() {
         save(emptyList())

@@ -18,6 +18,7 @@ The format follows Keep a Changelog principles, and versions should follow seman
 
 ### Added
 
+- Active-field quick correction from the floating overlay: cleans selected text, or the whole focused field when nothing is selected, using local spacing/case/punctuation cleanup.
 - Model/language profiles on the Models screen for Danish/multilingual, compact multilingual, and English low-latency workflows; selecting a profile switches to its recommended local ASR model.
 - Optional local-only dictation history with an off-by-default setting, History screen, copy/delete/clear controls, and final-transcript-only recording after successful insertion.
 - Initial product, architecture, privacy, permissions, UX, and release planning documents.

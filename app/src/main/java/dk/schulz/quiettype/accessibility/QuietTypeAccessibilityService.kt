@@ -177,12 +177,17 @@ class QuietTypeAccessibilityService : AccessibilityService() {
                 ),
             )
         }
+        val correct = overlayPart("Fix").apply {
+            contentDescription = "Correct text in the focused field"
+            setOnClickListener { correctFocusedFieldText() }
+        }
         val hide = overlayPart("×").apply {
             contentDescription = "Hide QuietType for this field"
             setOnClickListener { confirmHideCurrentTarget() }
         }
         container.addView(handle)
         container.addView(mic)
+        container.addView(correct)
         container.addView(hide)
         updateOverlayPresentation(container, detection)
 
@@ -263,6 +268,55 @@ class QuietTypeAccessibilityService : AccessibilityService() {
             .create()
         dialog.window?.setType(WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY)
         dialog.show()
+    }
+
+    private fun correctFocusedFieldText() {
+        val focusedNode = rootInActiveWindow?.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
+        if (focusedNode == null) {
+            showToast("No editable text field is focused.")
+            return
+        }
+
+        try {
+            val snapshot = focusedNode.toFocusedFieldSnapshot(
+                eventPackageName = focusedNode.packageName?.toString(),
+                eventClassName = focusedNode.className?.toString(),
+            )
+            val draft = TextCorrectionDraft.from(
+                TextCorrectionRequest(
+                    focusedField = snapshot,
+                    existingText = focusedNode.text?.toString().orEmpty(),
+                    hintText = focusedNode.hintText?.toString(),
+                    selectionStart = focusedNode.textSelectionStart,
+                    selectionEnd = focusedNode.textSelectionEnd,
+                ),
+            )
+            if (!draft.canCorrect) {
+                showToast("QuietType did not correct text: ${draft.blockReason}.")
+                return
+            }
+
+            val arguments = Bundle().apply {
+                putCharSequence(
+                    AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
+                    draft.textToSet,
+                )
+            }
+            if (focusedNode.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments)) {
+                draft.cursorPosition?.let { cursor ->
+                    val selectionArguments = Bundle().apply {
+                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, cursor)
+                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, cursor)
+                    }
+                    focusedNode.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selectionArguments)
+                }
+                showToast("Corrected focused text.")
+            } else {
+                showToast("This field does not accept accessibility text correction.")
+            }
+        } finally {
+            focusedNode.recycle()
+        }
     }
 
     private fun insertTranscriptIntoFocusedField(transcript: String, recordHistory: Boolean) {

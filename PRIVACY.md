@@ -17,7 +17,7 @@ QuietType uses the microphone only while the user actively starts dictation. Hol
 
 ## Transcripts
 
-Dictated text is inserted into the user's chosen input field. The Accessibility service receives final transcript broadcasts from the local dictation service and reads the focused node's existing text at insertion time so it can append the recognized text instead of overwriting the field. Transcript history is off by default. If the user enables local history, QuietType saves only successful final dictation text entries in private app storage, never raw audio or live partial text. The History screen lets the user copy individual entries, delete individual entries, or clear all saved entries.
+Dictated text is inserted into the user's chosen input field. The Accessibility service receives final transcript broadcasts from the local dictation service and reads the focused node's existing text at insertion time so it can append the recognized text instead of overwriting the field. Quick correction also runs from an explicit overlay tap and reads/rewrites only the currently focused editable field; it uses local cleanup and does not send field text to a network service. Transcript history is off by default. If the user enables local history, QuietType saves only successful final dictation text entries in private app storage, never raw audio or live partial text. The History screen lets the user copy individual entries, delete individual entries, or clear all saved entries.
 
 ## Accessibility service
 

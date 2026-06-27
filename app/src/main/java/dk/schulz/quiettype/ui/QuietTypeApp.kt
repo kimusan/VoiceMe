@@ -233,7 +233,7 @@ fun QuietTypeHomeScreen(
                             historyEntries = historyEntries,
                             historyEnabled = appSettings.transcriptHistoryEnabled,
                             onCopyHistoryEntry = onCopyHistoryEntry,
-                            onDeleteHistoryEntry = onDeleteHistoryEntry,
+                                            onDeleteHistoryEntry = onDeleteHistoryEntry,
                             onClearHistory = onClearHistory,
                             onEnableHistory = { onSettingsChange(appSettings.copy(transcriptHistoryEnabled = true)) },
                         )
@@ -1090,9 +1090,9 @@ private fun QuietTypeHistoryScreen(
                         )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Button(
+                            OutlinedButton(
                                 onClick = { onCopyHistoryEntry(entry) },
                                 modifier = Modifier.weight(1f),
                             ) { Text("Copy") }

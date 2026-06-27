@@ -39,12 +39,13 @@ class DictationHistoryPolicyTest {
     }
 
     @Test
-    fun entriesCanBeDeletedIndividually() {
+    fun deleteEntryRemovesOnlyMatchingId() {
         val entries = listOf(
-            DictationHistoryEntry(id = "a", text = "alpha", createdAtEpochMillis = 1L),
-            DictationHistoryEntry(id = "b", text = "beta", createdAtEpochMillis = 2L),
+            DictationHistoryEntry("keep", "first", 100L),
+            DictationHistoryEntry("delete", "second", 90L),
         )
 
-        assertEquals(listOf(entries.first()), DictationHistoryPolicy.deleteEntry(entries, "b"))
+        assertEquals(listOf(entries.first()), DictationHistoryPolicy.deleteEntry(entries, "delete"))
     }
+
 }

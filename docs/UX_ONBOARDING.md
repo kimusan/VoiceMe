@@ -76,3 +76,12 @@
 - The Models screen starts with friendly profiles instead of requiring users to understand ASR runtimes first.
 - Danish + multilingual is the default profile and selects the Parakeet v3 multilingual model.
 - Compact multilingual and English low-latency profiles switch to smaller/faster candidate models while still allowing manual model selection below.
+
+
+## Quick correction mode
+
+- The floating overlay exposes a compact Correct action beside the microphone.
+- Correction targets the active input field, not saved history: selected text is cleaned when a selection exists; otherwise QuietType cleans the whole focused field.
+- The first implementation uses local deterministic cleanup for spacing, casing, and terminal punctuation. A future local correction model can replace this policy behind the same active-field UX.
+- Sensitive/password-like fields remain blocked from both dictation insertion and correction.
+- Quick fixes should be understandable labels such as Clean spacing, Capitalize first, Sentence case, and Add period.

@@ -35,7 +35,7 @@ QuietType is planned as a privacy-first app:
 - Network access is limited to explicit user-initiated model downloads or future release/update metadata.
 - Model files are downloaded over HTTPS only after user action and are SHA-256 verified before being stored as downloaded archives.
 - A downloaded archive is not considered dictation-ready until a runtime preparation step verifies the files needed by the ASR engine.
-- Optional dictation history is off by default, local-only when enabled, and deletable from the History screen.
+- Optional dictation history is off by default, local-only when enabled, and deletable from the History screen. Quick correction works on the currently focused input field from the floating overlay, not on saved history.
 - Users can delete downloaded models and local data from settings.
 
 See `PRIVACY.md`, `docs/THREAT_MODEL.md`, and `docs/PERMISSIONS.md` for details.
