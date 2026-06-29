@@ -86,7 +86,8 @@ class QuietTypeRecordingService : Service() {
         recordingThread = Thread({
             when (model.runtime.kind) {
                 ModelRuntimeKind.SherpaOnnxOfflineTransducer,
-                ModelRuntimeKind.SherpaOnnxOfflineCtc -> runOfflineTransducerLoop(
+                ModelRuntimeKind.SherpaOnnxOfflineCtc,
+                ModelRuntimeKind.SherpaOnnxOfflineWhisper -> runOfflineTransducerLoop(
                     modelName = model.name,
                     runtimeDirectory = runtimeDirectory,
                 )
@@ -110,6 +111,7 @@ class QuietTypeRecordingService : Service() {
                 config = SherpaRuntimeConfig.buildOfflineRecognizerConfig(
                     model = model,
                     runtimeDirectory = runtimeDirectory,
+                    preferredWhisperLanguage = settings.preferredWhisperLanguage,
                 ),
             )
             val liveCoordinator = if (settings.liveSentenceInsertionEnabled) OfflineLiveTranscriptCoordinator() else null

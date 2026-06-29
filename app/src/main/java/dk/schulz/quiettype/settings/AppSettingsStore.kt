@@ -24,6 +24,7 @@ class AppSettingsStore(
             HideInSensitiveFields to preferences.getString(HideInSensitiveFields, null).orEmpty(),
             SelectedModelId to preferences.getString(SelectedModelId, null).orEmpty(),
             SelectedLanguageProfileId to preferences.getString(SelectedLanguageProfileId, null).orEmpty(),
+            PreferredWhisperLanguage to preferences.getString(PreferredWhisperLanguage, null).orEmpty(),
             DownloadedModelIds to preferences.getString(DownloadedModelIds, null).orEmpty(),
             PreparedModelIds to preferences.getString(PreparedModelIds, null).orEmpty(),
             OverlayOffsetXDp to preferences.getString(OverlayOffsetXDp, null).orEmpty(),
@@ -54,6 +55,7 @@ class AppSettingsStore(
         private const val HideInSensitiveFields = "hideInSensitiveFields"
         private const val SelectedModelId = "selectedModelId"
         private const val SelectedLanguageProfileId = "selectedLanguageProfileId"
+        private const val PreferredWhisperLanguage = "preferredWhisperLanguage"
         private const val DownloadedModelIds = "downloadedModelIds"
         private const val PreparedModelIds = "preparedModelIds"
         private const val OverlayOffsetXDp = "overlayOffsetXDp"

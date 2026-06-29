@@ -21,6 +21,7 @@ class AppSettingsTest {
         assertTrue(settings.downloadedCorrectionModelIds.isEmpty())
         assertTrue(settings.hideInSensitiveFields)
         assertEquals("da-multilingual", settings.selectedLanguageProfileId)
+        assertEquals(WhisperPreferredLanguage.Automatic, settings.preferredWhisperLanguage)
         assertEquals(16, settings.overlayOffsetXDp)
         assertTrue(settings.overlayOffsetYDp >= 320)
     }
@@ -50,6 +51,7 @@ class AppSettingsTest {
             hideInSensitiveFields = true,
             selectedModelId = AppSettings.default().selectedModelId,
             selectedLanguageProfileId = "en-fast",
+            preferredWhisperLanguage = WhisperPreferredLanguage.German,
             downloadedModelIds = setOf("sherpa-onnx-streaming-zipformer-en-int8"),
             preparedModelIds = setOf("sherpa-onnx-streaming-zipformer-en-int8"),
             overlayOffsetXDp = 42,
@@ -74,6 +76,15 @@ class AppSettingsTest {
         assertEquals(OverlayColorPreset.Purple, restored.overlayColorPreset)
     }
 
+
+    @Test
+    fun settingsCodecFallsBackToAutomaticWhisperLanguageWhenUnknown() {
+        val restored = AppSettingsCodec.decode(
+            AppSettingsCodec.encode(AppSettings.default()) + ("preferredWhisperLanguage" to "Klingon"),
+        )
+
+        assertEquals(WhisperPreferredLanguage.Automatic, restored.preferredWhisperLanguage)
+    }
 
     @Test
     fun hiddenTargetsRoundTrip() {

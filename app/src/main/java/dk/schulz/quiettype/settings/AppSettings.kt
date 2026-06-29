@@ -19,6 +19,17 @@ enum class OverlayColorPreset(val displayName: String, val idleColor: Int, val l
     Pink("Pink", 0xFFC2185B.toInt(), 0xFFC62828.toInt()),
 }
 
+enum class WhisperPreferredLanguage(
+    val displayName: String,
+    val whisperCode: String,
+) {
+    Automatic("Automatic", ""),
+    Danish("Danish", "da"),
+    English("English", "en"),
+    Spanish("Spanish", "es"),
+    German("German", "de"),
+}
+
 data class AppSettings(
     val onboardingComplete: Boolean,
     val dictationInteraction: DictationInteraction,
@@ -31,6 +42,7 @@ data class AppSettings(
     val hideInSensitiveFields: Boolean,
     val selectedModelId: String,
     val selectedLanguageProfileId: String,
+    val preferredWhisperLanguage: WhisperPreferredLanguage,
     val downloadedModelIds: Set<String>,
     val preparedModelIds: Set<String>,
     val overlayOffsetXDp: Int,
@@ -56,6 +68,7 @@ data class AppSettings(
             hideInSensitiveFields = true,
             selectedModelId = ModelCatalog.default().defaultProfile.defaultModelId ?: ModelCatalog.default().recommended.id,
             selectedLanguageProfileId = ModelCatalog.default().defaultProfile.id,
+            preferredWhisperLanguage = WhisperPreferredLanguage.Automatic,
             downloadedModelIds = emptySet(),
             preparedModelIds = emptySet(),
             overlayOffsetXDp = OverlayPlacementPolicy.DefaultPosition.xDp,
@@ -78,6 +91,7 @@ object AppSettingsCodec {
     private const val HideInSensitiveFields = "hideInSensitiveFields"
     private const val SelectedModelId = "selectedModelId"
     private const val SelectedLanguageProfileId = "selectedLanguageProfileId"
+    private const val PreferredWhisperLanguage = "preferredWhisperLanguage"
     private const val DownloadedModelIds = "downloadedModelIds"
     private const val PreparedModelIds = "preparedModelIds"
     private const val OverlayOffsetXDp = "overlayOffsetXDp"
@@ -97,6 +111,7 @@ object AppSettingsCodec {
         HideInSensitiveFields to settings.hideInSensitiveFields.toString(),
         SelectedModelId to settings.selectedModelId,
         SelectedLanguageProfileId to settings.selectedLanguageProfileId,
+        PreferredWhisperLanguage to settings.preferredWhisperLanguage.name,
         DownloadedModelIds to settings.downloadedModelIds.sorted().joinToString(","),
         PreparedModelIds to settings.preparedModelIds.sorted().joinToString(","),
         OverlayOffsetXDp to settings.overlayOffsetXDp.toString(),
@@ -134,6 +149,8 @@ object AppSettingsCodec {
                 ?: defaults.selectedModelId,
             selectedLanguageProfileId = values[SelectedLanguageProfileId]?.takeIf { it.isNotBlank() }
                 ?: defaults.selectedLanguageProfileId,
+            preferredWhisperLanguage = values[PreferredWhisperLanguage]?.let(::decodeWhisperPreferredLanguage)
+                ?: defaults.preferredWhisperLanguage,
             downloadedModelIds = values[DownloadedModelIds]?.split(',')
                 ?.map { it.trim() }
                 ?.filter { it.isNotBlank() }
@@ -160,6 +177,9 @@ object AppSettingsCodec {
 
     private fun decodeOverlayColorPreset(value: String): OverlayColorPreset? =
         OverlayColorPreset.entries.firstOrNull { it.name == value }
+
+    private fun decodeWhisperPreferredLanguage(value: String): WhisperPreferredLanguage? =
+        WhisperPreferredLanguage.entries.firstOrNull { it.name == value }
 
     private fun encodeHiddenTargets(targets: List<HiddenFieldTarget>): String = targets.joinToString("\n") { target ->
         listOf(

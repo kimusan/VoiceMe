@@ -103,16 +103,16 @@ class ModelCatalogTest {
     }
 
     @Test
-    fun catalogIncludesWhisperCppTinyAndBaseSpeechModels() {
+    fun catalogIncludesCustomWhisperSpeechModelsBackedBySherpaWhisper() {
         val catalog = ModelCatalog.default()
         val whisperTiny = catalog.modelById("whisper-cpp-ggml-tiny") ?: error("missing whisper tiny")
         val whisperBase = catalog.modelById("whisper-cpp-ggml-base") ?: error("missing whisper base")
 
-        assertEquals(ModelRuntimeKind.WhisperCpp, whisperTiny.runtime.kind)
-        assertEquals(listOf("ggml-tiny.bin"), whisperTiny.runtime.requiredFiles)
-        assertEquals(ModelRuntimeKind.WhisperCpp, whisperBase.runtime.kind)
-        assertTrue(whisperTiny.description.contains("OpenCL", ignoreCase = true))
-        assertTrue(whisperBase.description.contains("NNAPI", ignoreCase = true))
+        assertEquals(ModelRuntimeKind.SherpaOnnxOfflineWhisper, whisperTiny.runtime.kind)
+        assertEquals(listOf("tiny-encoder.int8.onnx", "tiny-decoder.int8.onnx", "tiny-tokens.txt"), whisperTiny.runtime.requiredFiles)
+        assertEquals(ModelRuntimeKind.SherpaOnnxOfflineWhisper, whisperBase.runtime.kind)
+        assertTrue(whisperTiny.description.contains("preferred-language hint", ignoreCase = true))
+        assertTrue(whisperBase.description.contains("preferred-language hint", ignoreCase = true))
     }
 
 }

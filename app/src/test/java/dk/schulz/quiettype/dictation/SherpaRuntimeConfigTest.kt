@@ -1,6 +1,7 @@
 package dk.schulz.quiettype.dictation
 
 import dk.schulz.quiettype.models.ModelCatalog
+import dk.schulz.quiettype.settings.WhisperPreferredLanguage
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -56,6 +57,31 @@ class SherpaRuntimeConfigTest {
 
         assertEquals(runtime.resolve("model.int8.onnx").absolutePath, config.modelConfig.nemo.model)
         assertEquals(runtime.resolve("tokens.txt").absolutePath, config.modelConfig.tokens)
+    }
+
+    @Test
+    fun whisperTinyPreparedRuntimeBuildsOfflineWhisperConfigWithPreferredLanguage() {
+        val model = ModelCatalog.default().modelById("whisper-cpp-ggml-tiny")!!
+        val runtime = temporaryFolder.newFolder("whisper-runtime")
+        listOf("tiny-encoder.int8.onnx", "tiny-decoder.int8.onnx", "tiny-tokens.txt").forEach { name ->
+            runtime.resolve(name).writeText("fake")
+        }
+
+        assertTrue(SherpaRuntimeConfig.canRunDictation(model, runtime))
+        assertFalse(SherpaRuntimeConfig.canRunOnline(model, runtime))
+
+        val config = SherpaRuntimeConfig.buildOfflineRecognizerConfig(
+            model = model,
+            runtimeDirectory = runtime,
+            preferredWhisperLanguage = WhisperPreferredLanguage.Danish,
+            numThreads = 2,
+        )
+
+        assertEquals(runtime.resolve("tiny-encoder.int8.onnx").absolutePath, config.modelConfig.whisper.encoder)
+        assertEquals(runtime.resolve("tiny-decoder.int8.onnx").absolutePath, config.modelConfig.whisper.decoder)
+        assertEquals("da", config.modelConfig.whisper.language)
+        assertEquals("transcribe", config.modelConfig.whisper.task)
+        assertEquals(runtime.resolve("tiny-tokens.txt").absolutePath, config.modelConfig.tokens)
     }
 
     @Test

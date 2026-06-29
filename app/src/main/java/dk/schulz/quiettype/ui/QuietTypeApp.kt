@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -54,6 +55,7 @@ import dk.schulz.quiettype.history.DictationHistoryEntry
 import dk.schulz.quiettype.models.LanguageProfile
 import dk.schulz.quiettype.models.ModelCatalogState
 import dk.schulz.quiettype.models.ModelDownloadProgress
+import dk.schulz.quiettype.models.ModelRuntimeKind
 import dk.schulz.quiettype.models.VoiceModel
 import dk.schulz.quiettype.onboarding.OnboardingAction
 import dk.schulz.quiettype.onboarding.OnboardingActionLabel
@@ -63,6 +65,7 @@ import dk.schulz.quiettype.onboarding.OnboardingStep
 import dk.schulz.quiettype.settings.AppSettings
 import dk.schulz.quiettype.settings.DictationInteraction
 import dk.schulz.quiettype.settings.OverlayColorPreset
+import dk.schulz.quiettype.settings.WhisperPreferredLanguage
 import dk.schulz.quiettype.ui.theme.QuietTypeTheme
 import java.text.DateFormat
 import java.util.Date
@@ -555,6 +558,26 @@ private fun QuietTypeSettingsPreview(
                 onSettingsChange(appSettings.copy(liveSentenceInsertionEnabled = enabled))
             },
         )
+        val selectedVoiceModel = ModelCatalogState.default().catalog.modelById(appSettings.selectedModelId)
+        if (selectedVoiceModel?.runtime?.kind == ModelRuntimeKind.SherpaOnnxOfflineWhisper) {
+            SettingsSectionCard(title = "Preferred Whisper language") {
+                Text(
+                    text = "Whisper can bias recognition toward a language for short utterances. Automatic keeps multilingual detection on.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    WhisperPreferredLanguage.entries.forEach { language ->
+                        FilterChip(
+                            selected = appSettings.preferredWhisperLanguage == language,
+                            onClick = {
+                                onSettingsChange(appSettings.copy(preferredWhisperLanguage = language))
+                            },
+                            label = { Text(language.displayName) },
+                        )
+                    }
+                }
+            }
+        }
         SettingsSectionCard(title = "Fix text model") {
             SettingSwitchRow(
                 title = "Use local correction model",

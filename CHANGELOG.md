@@ -16,7 +16,7 @@ The format follows Keep a Changelog principles, and versions should follow seman
 - Added a separate drag handle on the Accessibility floating control so repositioning does not trigger dictation.
 - Added a hide-here control with warning confirmation; hidden apps/screens/fields can be removed again from Settings.
 - The Settings screen now keeps only the correction-runtime toggle/summary, while the Models screen owns correction-model download, selection, and deletion flows.
-- Whisper tiny/base downloadable catalog entries now use verified upstream SHA-256 checksums so downloads do not fail on checksum mismatch.
+- Whisper tiny/base custom catalog entries now use real sherpa-onnx Whisper Android model packs instead of placeholder whisper.cpp downloads, and the Settings screen shows a preferred-language picker only when a Whisper model is selected.
 
 ### Added
 
@@ -38,7 +38,7 @@ The format follows Keep a Changelog principles, and versions should follow seman
 - Final transcript insertion that appends recognized on-device dictation text through accessibility `ACTION_SET_TEXT` when a local dictation session stops.
 - HTTPS model artifact download plumbing with SHA-256 verification, private model-file storage, progress bar/percentage text, and deletion semantics before a model archive is marked downloaded.
 - Switched the default catalog candidate to sherpa-onnx Parakeet TDT v3 int8 with Danish/multilingual support, a real GitHub release URL, and SHA-256 checksum.
-- Kept Parakeet v2 int8, compact streaming English, compact CTC, and Whisper.cpp tiny/base GGML entries as fallback/custom candidates; Whisper entries are downloadable for runtime planning while whisper.cpp Android acceleration integration is still tracked before release.
+- Kept Parakeet v2 int8, compact streaming English, compact CTC, and experimental custom Whisper tiny/base candidates available through Custom; Whisper now runs through sherpa-onnx OfflineWhisper on Android and can bias decoding toward Automatic, Danish, English, Spanish, or German.
 - Separate downloaded-archive and prepared-for-dictation model states; verified sherpa `.tar.bz2` archives are unpacked into private runtime files and marked prepared when all runtime-required files are present.
 - Release signing template and release-gate checklist for reproducible signed APK builds without committing keystores.
 - Action-based onboarding buttons for Accessibility settings, microphone permission, and model setup, with “already enabled/allowed/ready” labels when setup is complete.
