@@ -70,7 +70,7 @@ Then manually verify:
 7. Downloaded archive state is not presented as ASR-ready until runtime preparation succeeds.
 8. Dictation history is off by default; when enabled, successful final dictations appear in History and copy/delete/clear controls work.
 9. Model/language profile switching selects the documented recommended model, starts a missing recommended download after the user selects the profile, and does not mark a model ready until download/preparation succeeds. Custom reveals the full model list.
-10. Quick correction from the floating overlay cleans the currently focused input field: selected text is corrected when selected; otherwise the whole field is corrected. Sensitive fields remain blocked. Correction-model settings must not claim SmolLM/LLM correction is active before the local runtime is wired.
+10. Quick correction from the floating overlay cleans the currently focused input field: selected text is corrected when selected; otherwise the whole field is corrected. Sensitive fields remain blocked. When a downloaded local correction model is enabled, Fix tries that model first and falls back to Fast local cleanup if the runtime fails or produces unusable output.
 
 ## Signing
 

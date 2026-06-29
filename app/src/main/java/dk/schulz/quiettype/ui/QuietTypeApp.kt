@@ -581,7 +581,7 @@ private fun QuietTypeSettingsPreview(
         SettingsSectionCard(title = "Fix text model") {
             SettingSwitchRow(
                 title = "Use local correction model",
-                body = "When enabled, Fix will use the selected correction model after its runtime is integrated. For now QuietType still falls back to built-in cleanup.",
+                body = "When enabled, Fix uses the selected local correction model when it is downloaded and available. If the model runtime fails or returns unusable output, QuietType falls back to built-in cleanup.",
                 checked = appSettings.correctionModelEnabled,
                 onCheckedChange = { enabled ->
                     onSettingsChange(appSettings.copy(correctionModelEnabled = enabled))
@@ -886,7 +886,7 @@ private fun QuietTypeModelsScreen(
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            text = "Selecting a correction model saves it immediately and downloads it if needed. Fix still falls back to built-in cleanup until local LLM runtime wiring lands.",
+            text = "Selecting a correction model saves it immediately and downloads it if needed. When correction is enabled, Fix tries the selected local model first and falls back to built-in cleanup if the runtime fails.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
