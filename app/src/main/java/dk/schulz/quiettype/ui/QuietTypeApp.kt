@@ -549,7 +549,7 @@ private fun QuietTypeSettingsPreview(
         )
         SettingSwitchCard(
             title = "Experimental live insertion",
-            body = "Insert stable words or phrases while a streaming recognizer is still listening. Experimental: offline Danish models still insert final text after stop.",
+            body = "Insert stable words or phrases while QuietType is still listening. Experimental: streaming models and chunked offline Danish models now emit stable local deltas before stop.",
             checked = appSettings.liveSentenceInsertionEnabled,
             onCheckedChange = { enabled ->
                 onSettingsChange(appSettings.copy(liveSentenceInsertionEnabled = enabled))

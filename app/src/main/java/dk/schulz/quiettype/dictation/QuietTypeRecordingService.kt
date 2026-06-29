@@ -102,12 +102,9 @@ class QuietTypeRecordingService : Service() {
     @SuppressLint("MissingPermission")
     private fun runOfflineTransducerLoop(modelName: String, runtimeDirectory: File) {
         var recognizer: OfflineRecognizer? = null
-        var stream: OfflineStream? = null
         try {
-            val audioChunks = recordHeldAudio(modelName)
-            if (audioChunks.isEmpty()) return
-            broadcastProcessingState(true)
-            val model = ModelCatalog.default().modelById(settingsStore.load().selectedModelId) ?: return
+            val settings = settingsStore.load()
+            val model = ModelCatalog.default().modelById(settings.selectedModelId) ?: return
             recognizer = OfflineRecognizer(
                 assetManager = null,
                 config = SherpaRuntimeConfig.buildOfflineRecognizerConfig(
@@ -115,16 +112,29 @@ class QuietTypeRecordingService : Service() {
                     runtimeDirectory = runtimeDirectory,
                 ),
             )
-            stream = recognizer.createStream()
-            audioChunks.forEach { chunk ->
-                stream.acceptWaveform(chunk, SherpaRuntimeConfig.SampleRateHz)
+            val liveCoordinator = if (settings.liveSentenceInsertionEnabled) OfflineLiveTranscriptCoordinator() else null
+            val liveDecodePolicy = if (settings.liveSentenceInsertionEnabled) {
+                OfflineLiveDecodePolicy(
+                    firstDecodeSamples = SherpaRuntimeConfig.SampleRateHz * 2,
+                    subsequentDecodeIntervalSamples = SherpaRuntimeConfig.SampleRateHz * 2,
+                )
+            } else {
+                null
             }
-            recognizer.decode(stream)
-            broadcastFinalTranscript(recognizer.getResult(stream).text.trim())
+            val audioChunks = recordHeldAudio(
+                modelName = modelName,
+                recognizer = recognizer,
+                liveCoordinator = liveCoordinator,
+                liveDecodePolicy = liveDecodePolicy,
+            )
+            if (audioChunks.isEmpty()) return
+            broadcastProcessingState(true)
+            val finalTranscript = decodeOfflineTranscript(recognizer, audioChunks)
+            val finalDelta = liveCoordinator?.onFinalTranscript(finalTranscript) ?: finalTranscript
+            broadcastFinalTranscript(finalDelta)
         } catch (error: Throwable) {
             notifyStatus("QuietType dictation stopped: ${error.message ?: error::class.java.simpleName}.")
         } finally {
-            stream?.release()
             recognizer?.release()
             broadcastProcessingState(false)
             keepRecording.set(false)
@@ -205,7 +215,12 @@ class QuietTypeRecordingService : Service() {
     }
 
     @SuppressLint("MissingPermission")
-    private fun recordHeldAudio(modelName: String): List<FloatArray> {
+    private fun recordHeldAudio(
+        modelName: String,
+        recognizer: OfflineRecognizer? = null,
+        liveCoordinator: OfflineLiveTranscriptCoordinator? = null,
+        liveDecodePolicy: OfflineLiveDecodePolicy? = null,
+    ): List<FloatArray> {
         val minBufferSize = AudioRecord.getMinBufferSize(
             SherpaRuntimeConfig.SampleRateHz,
             AudioFormat.CHANNEL_IN_MONO,
@@ -246,6 +261,16 @@ class QuietTypeRecordingService : Service() {
                 }
                 chunks += FloatArray(samplesToKeep) { index -> shortBuffer[index] / Short.MAX_VALUE.toFloat() }
                 capturedSamples += samplesToKeep
+                if (
+                    recognizer != null &&
+                    liveCoordinator != null &&
+                    liveDecodePolicy != null &&
+                    liveDecodePolicy.onSamplesCaptured(capturedSamples)
+                ) {
+                    liveCoordinator.onPartialTranscript(
+                        decodeOfflineTranscript(recognizer, chunks),
+                    )?.let(::broadcastLiveTranscript)
+                }
                 if (capturedSamples >= maxSamples) {
                     notifyStatus("QuietType reached the ${RecordingBufferPolicy.DefaultMaxOfflineDurationSeconds}-second offline dictation limit. Processing locally.")
                     keepRecording.set(false)
@@ -266,6 +291,20 @@ class QuietTypeRecordingService : Service() {
         recordingThread?.join(3_000)
         if (recordingThread?.isAlive != true) {
             recordingThread = null
+        }
+    }
+
+    private fun decodeOfflineTranscript(recognizer: OfflineRecognizer, audioChunks: List<FloatArray>): String {
+        var stream: OfflineStream? = null
+        return try {
+            stream = recognizer.createStream()
+            audioChunks.forEach { chunk ->
+                stream.acceptWaveform(chunk, SherpaRuntimeConfig.SampleRateHz)
+            }
+            recognizer.decode(stream)
+            recognizer.getResult(stream).text.trim()
+        } finally {
+            stream?.release()
         }
     }
 
